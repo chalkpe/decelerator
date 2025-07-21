@@ -1,7 +1,11 @@
+.vscode
 .DS_Store
 
-build
 node_modules
 
-# React Router
+.env
+.env.local
+
+build
 .react-router
+/app/generated/prisma
