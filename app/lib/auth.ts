@@ -10,6 +10,12 @@ export default async function createAuth() {
   return betterAuth({
     appName: pkg.name,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+    user: {
+      additionalFields: {
+        domain: { type: 'string' },
+        username: { type: 'string' },
+      },
+    },
     plugins: [
       genericOAuth({
         config: apps.map((app) => ({
@@ -27,6 +33,8 @@ export default async function createAuth() {
             email: `${profile.username}@${app.domain}`,
             image: profile.avatar,
             emailVerified: true,
+            domain: app.domain,
+            username: profile.username,
           }),
         })),
       }),

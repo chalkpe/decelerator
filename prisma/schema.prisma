@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -10,10 +9,10 @@ datasource db {
 }
 
 model App {
-  domain      String   @id
-  clientId   String
+  domain       String @id
+  clientId     String
   clientSecret String
-  redirectUri String
+  redirectUri  String
 }
 
 model User {
@@ -26,6 +25,9 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+
+  domain   String
+  username String
 
   @@unique([email])
   @@map("user")
