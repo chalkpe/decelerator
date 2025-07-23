@@ -5,6 +5,8 @@
   "private": true,
   "description": "내 글을 부스트한 사람의 글을 모아주는 서비스",
   "scripts": {
+    "dev": "pnpm -r run dev",
+    "preinstall": "npx only-allow pnpm",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -13,10 +15,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.2",
+    "@tsconfig/node24": "^24.0.1",
     "@types/node": "^24.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "sort-package-json": "^3.4.0",
     "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

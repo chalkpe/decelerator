@@ -6,12 +6,11 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "start": "react-router-serve ./build/server/index.js"
   },
   "dependencies": {
+    "@decelerator/database": "workspace:*",
     "@hookform/resolvers": "^5.1.1",
-    "@prisma/client": "^6.12.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -41,7 +40,6 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/sanitize-html": "^2.16.0",
-    "prisma": "^6.12.0",
     "tailwindcss": "^4.1.4",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.5",

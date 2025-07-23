@@ -1,0 +1,23 @@
+{
+  "name": "@decelerator/core",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Core functionality for the Decelerator project",
+  "exports": {
+    "./activities": {
+      "default": "./lib/activities.js",
+      "types": "./lib/activities.d.ts"
+    },
+    "./workflows": {
+      "default": "./lib/workflows.js",
+      "types": "./lib/workflows.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build --incremental"
+  },
+  "dependencies": {
+    "@temporalio/activity": "^1.12.1",
+    "@temporalio/workflow": "^1.12.1"
+  }
+}
