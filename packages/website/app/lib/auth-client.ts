@@ -3,6 +3,6 @@ import { createAuthClient } from 'better-auth/react'
 import type createAuth from './auth'
 
 export const authClient = createAuthClient({
-  baseURL: 'http://localhost:5173',
+  baseURL: import.meta.env.VITE_REDIRECT_URL,
   plugins: [inferAdditionalFields<Awaited<ReturnType<typeof createAuth>>>()],
 })

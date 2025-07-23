@@ -10,12 +10,13 @@
     }
   },
   "scripts": {
-    "build": "tsc --build --incremental",
+    "build": "prisma generate && tsc --build --incremental",
     "dev": "prisma studio",
-    "postinstall": "prisma generate"
+    "start": "prisma db push --skip-generate && prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.12.0"
+    "@prisma/client": "^6.12.0",
+    "@tsconfig/node24": "^24.0.1"
   },
   "devDependencies": {
     "prisma": "^6.12.0"

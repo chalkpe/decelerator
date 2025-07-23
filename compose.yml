@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - 5432:5432
+    networks:
+      - internal_network
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 10s
+    volumes:
+      - ./dist/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+
+  temporal:
+    depends_on:
+      - postgres
+    image: temporalio/auto-setup:latest
+    ports:
+      - 7233:7233
+    networks:
+      - internal_network
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_SEEDS=postgres
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+
+  temporal-ui:
+    depends_on:
+      - temporal
+    image: temporalio/ui:latest
+    ports:
+      - 8233:8233
+    networks:
+      - internal_network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8233']
+      interval: 10s
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_UI_PORT=8233
+
+  studio:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: packages/database/Dockerfile
+    ports:
+      - 5555:5555
+    networks:
+      - internal_network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5555']
+      interval: 10s
+    environment:
+      - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
+
+  # worker:
+  #   depends_on:
+  #     - temporal
+  #   build:
+  #     context: ./packages/worker
+  #     dockerfile: Dockerfile
+
+  website:
+    depends_on:
+      studio:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: packages/website/Dockerfile
+      args:
+        - VITE_REDIRECT_URL=http://localhost:8234
+    ports:
+      - 8234:8234
+    networks:
+      - internal_network
+      - external_network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8234']
+      interval: 10s
+    environment:
+      - PORT=8234
+      - BETTER_AUTH_SECRET=decelerator
+      - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
+
+networks:
+  external_network:
+  internal_network:
+    internal: true

@@ -44,6 +44,9 @@ importers:
       '@prisma/client':
         specifier: ^6.12.0
         version: 6.12.0(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3)
+      '@tsconfig/node24':
+        specifier: ^24.0.1
+        version: 24.0.1
     devDependencies:
       prisma:
         specifier: ^6.12.0

@@ -1,6 +1,4 @@
 FROM node:24-alpine AS base
-ARG VITE_REDIRECT_URL
-ENV VITE_REDIRECT_URL=$VITE_REDIRECT_URL
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack use pnpm
@@ -10,9 +8,8 @@ COPY ../../package.json /app/package.json
 COPY ../../pnpm-lock.yaml /app/pnpm-lock.yaml
 COPY ../../pnpm-workspace.yaml /app/pnpm-workspace.yaml
 
-RUN mkdir -p /app/packages/{database,website}
+RUN mkdir -p /app/packages/database
 COPY ../../packages/database /app/packages/database
-COPY ../../packages/website /app/packages/website
 WORKDIR /app
 
 FROM base AS prod-deps
@@ -25,7 +22,4 @@ RUN pnpm run build
 FROM base
 RUN apk add --no-cache curl
 COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=build /app/packages/website/build /app/packages/website/build
-COPY --from=build /app/packages/database/src/generated/prisma/*.node /app/packages/website/build/server
-EXPOSE 3000
-CMD ["pnpm", "-F", "@decelerator/website", "start"]
+CMD ["pnpm", "-F", "@decelerator/database", "start"]
