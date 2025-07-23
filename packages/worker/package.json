@@ -2,7 +2,7 @@
   "name": "@decelerator/worker",
   "version": "0.0.1",
   "private": true,
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc --build --incremental",
     "start": "node ."

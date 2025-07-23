@@ -5,12 +5,12 @@
   "description": "Core functionality for the Decelerator project",
   "exports": {
     "./activities": {
-      "default": "./lib/activities.js",
-      "types": "./lib/activities.d.ts"
+      "default": "./dist/activities.js",
+      "types": "./dist/activities.d.ts"
     },
     "./workflows": {
-      "default": "./lib/workflows.js",
-      "types": "./lib/workflows.d.ts"
+      "default": "./dist/workflows.js",
+      "types": "./dist/workflows.d.ts"
     }
   },
   "scripts": {

@@ -1,9 +1,9 @@
+import { prisma } from '@decelerator/database'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { genericOAuth } from 'better-auth/plugins'
 import { scopes } from '~/lib/masto'
-import prisma from '~/lib/prisma'
-import pkg from '../../package.json'
+import pkg from '../../../../package.json'
 
 export default async function createAuth() {
   const apps = await prisma.app.findMany()
