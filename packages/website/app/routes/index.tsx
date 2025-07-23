@@ -1,3 +1,4 @@
+import { prisma } from '@decelerator/database'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createRestAPIClient } from 'masto'
 import { useEffect } from 'react'
@@ -10,8 +11,7 @@ import { Input } from '~/components/ui/input'
 import createAuth from '~/lib/auth'
 import { authClient } from '~/lib/auth-client'
 import { createRedirectUri, scopes } from '~/lib/masto'
-import prisma from '~/lib/prisma'
-import pkg from '../../package.json'
+import pkg from '../../../../package.json'
 import type { Route } from './+types'
 
 const formSchema = z.object({

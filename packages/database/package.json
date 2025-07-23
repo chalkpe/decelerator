@@ -5,8 +5,9 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "prisma generate && tsc --build --incremental",
-    "dev": "prisma studio"
+    "build": "tsc --build --incremental",
+    "dev": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0"

@@ -5,7 +5,7 @@
   "private": true,
   "description": "내 글을 부스트한 사람의 글을 모아주는 서비스",
   "scripts": {
-    "dev": "pnpm -r run dev",
+    "dev": "pnpm -r --parallel run dev",
     "preinstall": "npx only-allow pnpm",
     "prepare": "husky"
   },
