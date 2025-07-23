@@ -1,0 +1,16 @@
+{
+  "name": "@decelerator/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "ts-node src/worker.ts"
+  },
+  "dependencies": {
+    "@temporalio/worker": "^1.12.1",
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

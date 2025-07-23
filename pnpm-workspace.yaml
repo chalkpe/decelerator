@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@swc/core'
+  - '@tailwindcss/oxide'
+  - '@temporalio/core-bridge'
+  - esbuild
+  - prisma
+  - protobufjs
