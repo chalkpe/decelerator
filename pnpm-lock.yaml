@@ -182,6 +182,9 @@ importers:
       '@decelerator/core':
         specifier: workspace:*
         version: link:../core
+      '@decelerator/database':
+        specifier: workspace:*
+        version: link:../database
       '@temporalio/worker':
         specifier: ^1.12.1
         version: 1.12.1

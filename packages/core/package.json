@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --build --incremental"
+    "build": "tsc --build"
   },
   "dependencies": {
     "@decelerator/database": "workspace:*",

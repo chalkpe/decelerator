@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "build": "prisma generate && tsc --build --incremental",
+    "build": "prisma generate && tsc --build",
     "dev": "prisma studio",
     "start": "prisma db push --skip-generate && prisma studio"
   },

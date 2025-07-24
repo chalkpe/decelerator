@@ -7,8 +7,6 @@ RUN apk add --no-cache openssl
 COPY ../../package.json /app/package.json
 COPY ../../pnpm-lock.yaml /app/pnpm-lock.yaml
 COPY ../../pnpm-workspace.yaml /app/pnpm-workspace.yaml
-
-RUN mkdir -p /app/packages/database
 COPY ../../packages/database /app/packages/database
 WORKDIR /app
 

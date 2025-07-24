@@ -2,13 +2,14 @@
   "name": "@decelerator/worker",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/worker.js",
   "scripts": {
-    "build": "tsc --build --incremental",
-    "start": "node ."
+    "build": "tsc --build && node dist/bundle.js",
+    "start": "node dist/worker.js"
   },
   "dependencies": {
     "@decelerator/core": "workspace:*",
+    "@decelerator/database": "workspace:*",
     "@temporalio/worker": "^1.12.1"
   }
 }

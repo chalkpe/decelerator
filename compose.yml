@@ -7,7 +7,7 @@ services:
       - internal_network
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
-      interval: 10s
+      interval: 5s
     volumes:
       - ./dist/postgres:/var/lib/postgresql/data
     environment:
@@ -15,12 +15,16 @@ services:
 
   temporal:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     image: temporalio/auto-setup:latest
     ports:
       - 7233:7233
     networks:
       - internal_network
+    healthcheck:
+      test: ['CMD', 'tctl', 'cluster', 'health']
+      interval: 5s
     environment:
       - DB=postgres12
       - DB_PORT=5432
@@ -31,12 +35,14 @@ services:
 
   temporal-ui:
     depends_on:
-      - temporal
+      temporal:
+        condition: service_healthy
     image: temporalio/ui:latest
     ports:
       - 8233:8233
     networks:
       - internal_network
+      - external_network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8233']
       interval: 10s
@@ -55,22 +61,32 @@ services:
       - 5555:5555
     networks:
       - internal_network
+      - external_network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5555']
       interval: 10s
     environment:
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
 
-  # worker:
-  #   depends_on:
-  #     - temporal
-  #   build:
-  #     context: ./packages/worker
-  #     dockerfile: Dockerfile
+  worker:
+    depends_on:
+      studio:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: packages/worker/Dockerfile
+    networks:
+      - internal_network
+    environment:
+      - LOG_LEVEL=info
 
   website:
     depends_on:
       studio:
+        condition: service_healthy
+      temporal:
         condition: service_healthy
     build:
       context: .
@@ -93,4 +109,5 @@ services:
 networks:
   external_network:
   internal_network:
-    internal: true
+    driver: bridge
+    name: temporal-network
