@@ -1,4 +1,4 @@
-import type { meetWorkflow } from '@decelerator/core/workflows'
+import type { meetWorkflow, visitWorkflow } from '@decelerator/core/workflows'
 import { AvatarImage } from '@radix-ui/react-avatar'
 import { getDateDistance, getDateDistanceText } from '@toss/date'
 import { createRestAPIClient } from 'masto'
@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return await globalForTemporal.temporal?.workflow.execute<typeof meetWorkflow>('meetWorkflow', {
     taskQueue: 'decelerator',
-    workflowId: `visit-loader-${domain}`,
+    workflowId: `meet-${domain}`,
     args: [{ domain, accessToken }],
   })
 }
@@ -143,9 +143,9 @@ export async function action({ request }: Route.ActionArgs) {
   const domain = session.user.domain
   const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain, userId: session.user.id } })
 
-  const index = await globalForTemporal.temporal?.workflow.execute('visitWorkflow', {
+  const index = await globalForTemporal.temporal?.workflow.execute<typeof visitWorkflow>('visitWorkflow', {
     taskQueue: 'decelerator',
-    workflowId: `visit-action-${domain}`,
+    workflowId: `visit-${domain}`,
     args: [{ domain, accessToken, accountId, reblogId, reblogCreatedAt }],
   })
   if (!index) return null
