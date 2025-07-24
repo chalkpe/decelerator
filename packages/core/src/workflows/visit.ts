@@ -59,13 +59,13 @@ export async function visitWorkflow(input: VisitWorkflowInput): Promise<StatusIn
     if (oldestIndex && newestIndex) {
       log.info('가장 오래된 인덱스와 가장 최근 인덱스를 찾았습니다.', { oldestIndex, newestIndex })
 
-      if (newestIndex.createdAt.toISOString() < reblogCreatedAt) {
+      if (`${newestIndex.createdAt}` < reblogCreatedAt) {
         log.info('인덱스들이 부스트 시점보다 과거입니다. 가장 최근 인덱스부터 미래 방향으로 인덱스를 생성합니다.')
         await save(await list({ domain, accessToken, accountId, pagination: { minId: newestIndex.statusId } }))
         continue
       }
 
-      if (oldestIndex.createdAt.toISOString() > reblogCreatedAt) {
+      if (`${oldestIndex.createdAt}` > reblogCreatedAt) {
         log.info('인덱스들이 부스트 시점보다 미래입니다. 가장 오래된 인덱스부터 과거 방향으로 인덱스를 생성합니다.')
         await save(await list({ domain, accessToken, accountId, pagination: { maxId: oldestIndex.statusId } }))
         continue

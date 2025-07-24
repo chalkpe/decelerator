@@ -80,7 +80,7 @@ services:
     networks:
       - internal_network
     environment:
-      - LOG_LEVEL=info
+      - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
 
   website:
     depends_on:

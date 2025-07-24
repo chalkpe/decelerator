@@ -1,10 +1,11 @@
+import type { meetWorkflow } from '@decelerator/core/workflows'
 import { AvatarImage } from '@radix-ui/react-avatar'
 import { getDateDistance, getDateDistanceText } from '@toss/date'
 import { createRestAPIClient } from 'masto'
 import type { Notification } from 'masto/mastodon/entities/v1/notification.js'
 import type { Status } from 'masto/mastodon/entities/v1/status.js'
 import { useCallback, useState } from 'react'
-import { redirect } from 'react-router'
+import { redirect, useFetcher } from 'react-router'
 import sanitizeHtml from 'sanitize-html'
 import { z } from 'zod'
 import { Avatar } from '~/components/ui/avatar'
@@ -29,7 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const domain = session.user.domain
   const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain, userId: session.user.id } })
 
-  return await globalForTemporal.temporal?.workflow.execute('meetWorkflow', {
+  return await globalForTemporal.temporal?.workflow.execute<typeof meetWorkflow>('meetWorkflow', {
     taskQueue: 'decelerator',
     workflowId: `visit-loader-${domain}`,
     args: [{ domain, accessToken }],
@@ -41,22 +42,32 @@ type NotificationWithData = Notification & {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const notifications = loaderData as NotificationWithData[]
+  const [notifications, setNotifications] = useState<NotificationWithData[]>([])
 
-  // const fetchNotifications = useCallback(async () => {
-  //   for await (const notification of notifications) {
-  //     const nextStatus = await findNextStatus(notification)
-  //     if (!nextStatus) continue
+  const fetcher = useFetcher()
 
-  //     const hasNextStatusContent = nextStatus.content.trim().length > 0
-  //     if (!hasNextStatusContent) continue
+  const fetchNotifications = useCallback(async () => {
+    for await (const notification of loaderData?.notifications ?? []) {
+      const nextStatus = await new Promise<Status | null>((resolve) => {
+        fetcher.submit(
+          { accountId: notification.account.id, reblogId: notification.id, reblogCreatedAt: notification.createdAt },
+          { method: 'post' },
+        )
 
-  //     const isNextStatusFresh = new Date(nextStatus.createdAt).getTime() - new Date(notification.createdAt).getTime() < 60 * 60 * 1000 // 1 hour
-  //     if (!isNextStatusFresh) continue
+        const check = () => (fetcher.state === 'idle' ? resolve(fetcher.data) : setTimeout(check, 100))
+        check()
+      })
+      if (!nextStatus) continue
 
-  //     setNotifications((prev) => [...prev, { ...notification, nextStatus }])
-  //   }
-  // }, [])
+      const hasNextStatusContent = nextStatus.content.trim().length > 0
+      if (!hasNextStatusContent) continue
+
+      const isNextStatusFresh = new Date(nextStatus.createdAt).getTime() - new Date(notification.createdAt).getTime() < 60 * 60 * 1000 // 1 hour
+      if (!isNextStatusFresh) continue
+
+      setNotifications((prev) => [...prev, { ...notification, nextStatus }])
+    }
+  }, [fetcher, loaderData])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted">
@@ -107,30 +118,38 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </li>
           ))}
         </ul>
+        <Button
+          className="w-full"
+          variant="outline"
+          onClick={fetchNotifications}
+          disabled={fetcher.state === 'submitting' || fetcher.state === 'loading'}
+        >
+          {fetcher.state === 'submitting' || fetcher.state === 'loading' ? '로딩 중...' : '새로운 알림 가져오기'}
+        </Button>
       </div>
     </main>
   )
 }
 
-// export async function action({ request }: Route.ActionArgs) {
-//   const result = formSchema.safeParse(Object.fromEntries(await request.formData()))
-//   if (!result.success) return null
-//   const { accountId, reblogId, reblogCreatedAt } = result.data
+export async function action({ request }: Route.ActionArgs) {
+  const result = formSchema.safeParse(Object.fromEntries(await request.formData()))
+  if (!result.success) return null
+  const { accountId, reblogId, reblogCreatedAt } = result.data
 
-//   const auth = await createAuth()
-//   const session = await auth.api.getSession(request)
-//   if (!session) return null
+  const auth = await createAuth()
+  const session = await auth.api.getSession(request)
+  if (!session) return null
 
-//   const domain = session.user.domain
-//   const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain } })
+  const domain = session.user.domain
+  const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain, userId: session.user.id } })
 
-//   const index = await globalForTemporal.temporal?.workflow.execute('visitWorkflow', {
-//     taskQueue: 'decelerator',
-//     workflowId: `visit-action-${domain}`,
-//     args: [{ domain, accessToken, accountId, reblogId, reblogCreatedAt }],
-//   })
-//   if (!index) return null
+  const index = await globalForTemporal.temporal?.workflow.execute('visitWorkflow', {
+    taskQueue: 'decelerator',
+    workflowId: `visit-action-${domain}`,
+    args: [{ domain, accessToken, accountId, reblogId, reblogCreatedAt }],
+  })
+  if (!index) return null
 
-//   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
-//   return await masto.v1.statuses.$select(index.statusId).fetch()
-// }
+  const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
+  return await masto.v1.statuses.$select(index.statusId).fetch()
+}
