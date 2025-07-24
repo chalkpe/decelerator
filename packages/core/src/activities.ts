@@ -1,2 +1,2 @@
-export * from './workflows/a/activities/a'
-export * from './workflows/a/activities/b'
+export * from './activities/list-statuses'
+export * from './activities/save-index'

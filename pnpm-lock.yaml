@@ -32,12 +32,25 @@ importers:
 
   packages/core:
     dependencies:
+      '@decelerator/database':
+        specifier: workspace:*
+        version: link:../database
       '@temporalio/activity':
         specifier: ^1.12.1
         version: 1.12.1
       '@temporalio/workflow':
         specifier: ^1.12.1
         version: 1.12.1
+      masto:
+        specifier: ^7.2.0
+        version: 7.2.0
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
+    devDependencies:
+      '@types/ms':
+        specifier: ^2.1.0
+        version: 2.1.0
 
   packages/database:
     dependencies:
@@ -54,6 +67,9 @@ importers:
 
   packages/website:
     dependencies:
+      '@decelerator/core':
+        specifier: workspace:*
+        version: link:../core
       '@decelerator/database':
         specifier: workspace:*
         version: link:../database
@@ -84,6 +100,9 @@ importers:
       '@react-router/serve':
         specifier: ^7.7.0
         version: 7.7.0(react-router@7.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(typescript@5.8.3)
+      '@temporalio/client':
+        specifier: ^1.12.1
+        version: 1.12.1
       '@toss/date':
         specifier: ^1.2.1
         version: 1.2.1
@@ -1360,6 +1379,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/ms@2.1.0':
+    resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
   '@types/node@24.1.0':
     resolution: {integrity: sha512-ut5FthK5moxFKH2T1CUOC6ctR67rQRvvHdFLCD2Ql6KXmMuCrjsSsRI9UsLCm9M18BMwClv4pn327UvB7eeO1w==}
@@ -4187,6 +4209,8 @@ snapshots:
   '@types/estree@1.0.8': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/ms@2.1.0': {}
 
   '@types/node@24.1.0':
     dependencies:

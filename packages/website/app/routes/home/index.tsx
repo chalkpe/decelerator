@@ -1,47 +1,34 @@
+import { workflows } from '@decelerator/core'
 import { AvatarImage } from '@radix-ui/react-avatar'
 import { getDateDistance, getDateDistanceText } from '@toss/date'
 import { createRestAPIClient } from 'masto'
 import type { Notification } from 'masto/mastodon/entities/v1/notification.js'
 import type { Status } from 'masto/mastodon/entities/v1/status.js'
 import { useCallback, useState } from 'react'
-import { redirect } from 'react-router'
+import { redirect, useFetcher } from 'react-router'
 import sanitizeHtml from 'sanitize-html'
+import { z } from 'zod'
 import { Avatar } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import createAuth from '~/lib/auth'
 import { authClient } from '~/lib/auth-client'
+import { temporal } from '~/lib/temporal.server'
 import type { Route } from './+types/index'
 
-type NotificationWithData = Notification & {
-  nextStatus: Status
-}
-
-async function findNextStatus(masto: ReturnType<typeof createRestAPIClient>, notification: Notification): Promise<Status | null> {
-  try {
-    let lastStatus: Status | null = null
-
-    for await (const statuses of masto.v1.accounts.$select(notification.account.id).statuses.list({
-      excludeReplies: true,
-      excludeReblogs: false,
-    })) {
-      for (const status of statuses.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))) {
-        if (status.reblog?.id === notification.status?.id) return lastStatus
-        if (status.createdAt <= notification.createdAt) return null
-        lastStatus = status
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Failed to find next status:', error)
-    return null
-  }
-}
+const formSchema = z.object({
+  accountId: z.string(),
+  reblogId: z.string(),
+  reblogCreatedAt: z.iso.datetime(),
+})
 
 export async function loader({ request }: Route.LoaderArgs) {
   const auth = await createAuth()
   return (await auth.api.getSession(request)) ? undefined : redirect('/')
+}
+
+type NotificationWithData = Notification & {
+  nextStatus: Status
 }
 
 export default function Home() {
@@ -49,6 +36,26 @@ export default function Home() {
 
   const [isFetching, setIsFetching] = useState(false)
   const [notifications, setNotifications] = useState<NotificationWithData[]>([])
+
+  const fetcher = useFetcher()
+  const findNextStatus = useCallback(
+    async (notification: Notification): Promise<Status | null> =>
+      new Promise((resolve, reject) => {
+        if (!notification.status) return resolve(null)
+        fetcher.submit({
+          accountId: notification.account.id,
+          reblogId: notification.status.id,
+          reblogCreatedAt: notification.createdAt,
+        })
+        setInterval(() => {
+          if (fetcher.state === 'idle') {
+            if (fetcher.data) resolve(fetcher.data as Status)
+            else reject(new Error('Failed to fetch next status'))
+          }
+        }, 100)
+      }),
+    [fetcher],
+  )
 
   const fetchNotifications = useCallback(async () => {
     if (isPending || !session || isFetching) return
@@ -74,7 +81,7 @@ export default function Home() {
         ...(typeof lastNotificationId === 'string' ? { maxId: lastNotificationId } : {}),
       })) {
         for (const notification of list.toSorted((a, b) => Number(b.id) - Number(a.id))) {
-          const nextStatus = await findNextStatus(masto, notification)
+          const nextStatus = await findNextStatus(notification)
           if (!nextStatus) continue
 
           const hasNextStatusContent = nextStatus.content.trim().length > 0
@@ -94,7 +101,7 @@ export default function Home() {
     } finally {
       setIsFetching(false)
     }
-  }, [isFetching, isPending, session, notifications])
+  }, [isFetching, isPending, session, notifications, findNextStatus])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted">
@@ -151,4 +158,27 @@ export default function Home() {
       </div>
     </main>
   )
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const result = formSchema.safeParse(Object.fromEntries(await request.formData()))
+  if (!result.success) return null
+  const { accountId, reblogId, reblogCreatedAt } = result.data
+
+  const auth = await createAuth()
+  const session = await auth.api.getSession(request)
+  if (!session) return null
+
+  const domain = session.user.domain
+  const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain } })
+
+  const index = await temporal.workflow.execute(workflows.visitWorkflow, {
+    taskQueue: 'decelerator',
+    workflowId: `visit-${session.user.domain}`,
+    args: [{ domain, accessToken, accountId, reblogId, reblogCreatedAt }],
+  })
+  if (!index) return null
+
+  const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
+  return await masto.v1.statuses.$select(index.statusId).fetch()
 }
