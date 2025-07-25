@@ -15,14 +15,31 @@ model App {
   redirectUri  String
 }
 
+model ReblogNotification {
+  domain         String
+  notificationId String
+  createdAt      DateTime
+
+  userId    String
+  statusId  String
+  accountId String
+
+  reactionId String?
+  reaction   StatusIndex? @relation(fields: [domain, reactionId], references: [domain, statusId])
+
+  @@unique([domain, notificationId])
+  @@map("reblog_notification")
+}
+
 model StatusIndex {
-  domain     String
-  statusId   String
-  accountId  String
-  visibility String
-  reblogId   String?
-  createdAt  DateTime
-  indexedAt  DateTime @default(now())
+  domain    String
+  statusId  String
+  createdAt DateTime
+
+  accountId String
+  reblogId  String?
+
+  notifications ReblogNotification[]
 
   @@unique([domain, statusId])
   @@map("status_index")
@@ -39,8 +56,9 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  domain   String
-  username String
+  domain     String
+  username   String
+  mastodonId String
 
   @@unique([email])
   @@map("user")

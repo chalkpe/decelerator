@@ -1,12 +1,12 @@
 import { prisma, type StatusIndexCreateManyInput } from '@decelerator/database'
 import { log } from '@temporalio/activity'
 
-export interface SaveIndexParams {
+export interface InsertIndexParams {
   indicies: StatusIndexCreateManyInput[]
 }
 
-export async function saveIndexActivity(params: SaveIndexParams) {
+export async function insertIndexActivity(params: InsertIndexParams) {
   const { indicies } = params
-  log.info('Saving status indices', { count: indicies.length })
+  log.info('Inserting status indices', { count: indicies.length })
   return await prisma.statusIndex.createMany({ data: indicies, skipDuplicates: true })
 }

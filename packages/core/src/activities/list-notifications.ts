@@ -1,32 +1,53 @@
+import type { ReblogNotificationCreateManyInput } from '@decelerator/database'
 import { heartbeat, log, sleep } from '@temporalio/activity'
 import { createRestAPIClient, MastoHttpError } from 'masto'
-import type { Notification } from 'masto/mastodon/entities/v1/notification.js'
+import ms from 'ms'
 
 export interface ListNotificationsParams {
   domain: string
   accessToken: string
-  pagination?: { maxId?: string }
+  pagination?: { minId?: string; maxId?: string }
+  limit?: ms.StringValue
 }
 
 export interface ListNotificationsResult {
-  notifications: Notification[]
+  notifications: ReblogNotificationCreateManyInput[]
   rateLimitExceeded: boolean
 }
 
 export async function listNotificationsActivity(params: ListNotificationsParams): Promise<ListNotificationsResult> {
-  const notifications: Notification[] = []
-  const { domain, accessToken, pagination } = params
-  log.info('Fetching notifications', { domain, pagination })
+  const { domain, accessToken, pagination, limit = '30 days' } = params
+  log.info('Fetching notifications', { domain, pagination, limit })
+
+  const past = Date.now() - ms(limit)
+  const notifications: ListNotificationsResult['notifications'] = []
 
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
-  const paginator = masto.v1.notifications.list({ ...pagination, types: ['reblog'], limit: 40 })
+  const paginator = masto.v1.notifications.list({ ...pagination, types: ['reblog'] })
 
   try {
     for await (const list of paginator) {
-      log.info('Fetched notifications', { domain, count: list.length })
-      notifications.push(...list)
+      log.info('Fetched notifications', { count: list.length })
+      notifications.push(
+        ...list.flatMap((notification) =>
+          notification.status
+            ? [
+                {
+                  domain,
+                  notificationId: notification.id,
+                  createdAt: new Date(notification.createdAt),
+                  userId: notification.status.account.id,
+                  statusId: notification.status.id,
+                  accountId: notification.account.id,
+                  reactionId: null,
+                },
+              ]
+            : [],
+        ),
+      )
 
-      if (notifications.length >= 10) {
+      if (notifications.some((n) => new Date(n.createdAt).getTime() < past)) {
+        log.info('Reached past limit, stopping fetching notifications', { past })
         break
       }
 
@@ -41,6 +62,6 @@ export async function listNotificationsActivity(params: ListNotificationsParams)
     throw error
   }
 
-  log.info('Finished fetching notifications', { domain, count: notifications.length })
+  log.info('Finished fetching notifications', { count: notifications.length })
   return { notifications, rateLimitExceeded: false }
 }

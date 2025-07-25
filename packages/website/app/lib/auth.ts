@@ -14,6 +14,7 @@ export default async function createAuth() {
       additionalFields: {
         domain: { type: 'string' },
         username: { type: 'string' },
+        mastodonId: { type: 'string' },
       },
     },
     plugins: [
@@ -28,13 +29,13 @@ export default async function createAuth() {
           redirectURI: app.redirectUri,
           userInfoUrl: `https://${app.domain}/api/v1/accounts/verify_credentials`,
           mapProfileToUser: (profile) => ({
-            id: profile.id,
             name: profile.display_name,
             email: `${profile.username}@${app.domain}`,
             image: profile.avatar,
             emailVerified: true,
             domain: app.domain,
             username: profile.username,
+            mastodonId: profile.id,
           }),
         })),
       }),

@@ -1,10 +1,11 @@
-import type { StatusIndex } from '@decelerator/database'
-import { log, proxyActivities, sleep } from '@temporalio/workflow'
+import { proxyActivities } from '@temporalio/workflow'
 import type * as findIndexActivities from '../activities/find-index'
+import type * as findNotificationActivities from '../activities/find-notification'
+import type * as insertIndexActivities from '../activities/insert-index'
 import type * as listStatusesActivities from '../activities/list-statuses'
-import type * as saveIndexActivities from '../activities/save-index'
+import type * as updateNotificationActivities from '../activities/update-notification'
 
-const { listStatusesActivity: list } = proxyActivities<typeof listStatusesActivities>({
+const { listStatusesActivity: listStatuses } = proxyActivities<typeof listStatusesActivities>({
   heartbeatTimeout: '10 seconds',
   startToCloseTimeout: '30 minutes',
   retry: {
@@ -12,85 +13,50 @@ const { listStatusesActivity: list } = proxyActivities<typeof listStatusesActivi
     nonRetryableErrorTypes: ['MastoHttpError'],
   },
 })
-
-const { findIndexActivity: find } = proxyActivities<typeof findIndexActivities>({
+const { findNotificationActivity: findNotification } = proxyActivities<typeof findNotificationActivities>({
   startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
-const { saveIndexActivity: save } = proxyActivities<typeof saveIndexActivities>({
+const { updateNotificationActivity: updateNotification } = proxyActivities<typeof updateNotificationActivities>({
   startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
+})
+const { findIndexActivity: findIndex } = proxyActivities<typeof findIndexActivities>({
+  startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
+})
+const { insertIndexActivity: insertIndex } = proxyActivities<typeof insertIndexActivities>({
+  startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
 
 export interface VisitWorkflowInput {
   domain: string
   accessToken: string
-  accountId: string
-  reblogId: string
-  reblogCreatedAt: string // Never use Date directly in workflows
+  notificationId: string
 }
 
-export async function visitWorkflow(input: VisitWorkflowInput): Promise<StatusIndex | null> {
-  const { domain, accessToken, accountId, reblogId, reblogCreatedAt } = input
+export async function visitWorkflow(input: VisitWorkflowInput) {
+  const { domain, accessToken, notificationId } = input
 
-  while (true) {
-    await sleep(1000)
+  const notification = await findNotification({ where: { domain, notificationId } })
+  if (!notification) return null
 
-    log.info('대상 계정이 작성한 대상 게시글의 부스트 인덱스를 찾습니다.')
-    const reblogIndex = await find({ where: { domain, accountId, reblogId }, orderBy: { createdAt: 'desc' } })
+  // 이미 계산해 둔 반응 인덱스가 있다면 바로 반환
+  if (notification.reactionId) return await findIndex({ where: { domain, statusId: notification.reactionId } })
 
-    if (reblogIndex) {
-      log.info('부스트 인덱스를 찾았습니다. 해당 인덱스의 생성 시간 이후에 대상 계정이 작성한 게시글 인덱스를 찾습니다.', { reblogIndex })
-      const rightAfterReblogIndex = await find({
-        where: { domain, accountId, reblogId: null, createdAt: { gt: reblogIndex.createdAt } },
-        orderBy: { createdAt: 'asc' },
-      })
+  // 최근 인덱스 이후에 작성된 게시글 인덱싱
+  const { accountId } = notification
+  const recent = await findIndex({ where: { domain, accountId }, orderBy: { createdAt: 'desc' } })
+  await insertIndex(await listStatuses({ domain, accessToken, accountId, pagination: { minId: recent?.statusId } }))
 
-      if (rightAfterReblogIndex) {
-        log.info('게시글 인덱스가 존재합니다. 해당 인덱스를 반환합니다.')
-        return rightAfterReblogIndex
-      }
-    }
+  // 반응 인덱스 찾기
+  const reaction = await findIndex({
+    where: { domain, accountId, createdAt: { gt: notification.createdAt }, reblogId: null },
+    orderBy: { createdAt: 'asc' },
+  })
 
-    log.info('부스트 인덱스를 찾지 못했습니다. 대상 계정의 가장 오래된 인덱스와 가장 최근 인덱스를 찾습니다.')
-    const [oldestIndex, newestIndex] = await Promise.all([
-      find({ where: { domain, accountId }, orderBy: { createdAt: 'asc' } }),
-      find({ where: { domain, accountId }, orderBy: { createdAt: 'desc' } }),
-    ])
-
-    if (oldestIndex && newestIndex) {
-      log.info('가장 오래된 인덱스와 가장 최근 인덱스를 찾았습니다.', { oldestIndex, newestIndex })
-
-      if (`${newestIndex.createdAt}` < reblogCreatedAt) {
-        log.info('인덱스들이 부스트 시점보다 과거입니다. 가장 최근 인덱스부터 미래 방향으로 인덱스를 생성합니다.')
-        await save(await list({ domain, accessToken, accountId, pagination: { minId: newestIndex.statusId } }))
-        continue
-      }
-
-      if (`${oldestIndex.createdAt}` > reblogCreatedAt) {
-        log.info('인덱스들이 부스트 시점보다 미래입니다. 가장 오래된 인덱스부터 과거 방향으로 인덱스를 생성합니다.')
-        await save(await list({ domain, accessToken, accountId, pagination: { maxId: oldestIndex.statusId } }))
-        continue
-      }
-
-      log.info('인덱스들이 부스트 시점에 걸쳐 있습니다. 부스트 시점 근처의 인덱스들을 찾습니다.')
-      const [beforeReblogIndex, afterReblogIndex] = await Promise.all([
-        find({ where: { domain, accountId, createdAt: { lt: reblogCreatedAt } }, orderBy: { createdAt: 'desc' } }),
-        find({ where: { domain, accountId, createdAt: { gt: reblogCreatedAt } }, orderBy: { createdAt: 'asc' } }),
-      ])
-
-      if (beforeReblogIndex && afterReblogIndex) {
-        log.info('부스트 시점 근처 인덱스들 사이 범위로 인덱스를 생성합니다.', { beforeReblogIndex, afterReblogIndex })
-        await save(
-          await list({
-            domain,
-            accessToken,
-            accountId,
-            pagination: { minId: beforeReblogIndex.statusId, maxId: afterReblogIndex.statusId },
-          }),
-        )
-      }
-    }
-
-    log.info('인덱스가 없습니다. 대상 계정의 인덱스를 처음부터 생성합니다.')
-    await save(await list({ domain, accessToken, accountId }))
-  }
+  if (!reaction) return null
+  await updateNotification({ where: { domain_notificationId: { domain, notificationId } }, data: { reactionId: reaction.statusId } })
+  return reaction
 }
