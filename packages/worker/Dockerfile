@@ -12,12 +12,7 @@ COPY ../../packages/database /app/packages/database
 COPY ../../packages/worker /app/packages/worker
 WORKDIR /app
 
-FROM base AS build
+FROM base
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
-
-FROM base
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/packages/worker/dist /app/packages/worker/dist
-COPY --from=build /app/packages/database/src/generated/prisma/*.node /app/packages/database/dist/generated/prisma
 CMD ["pnpm", "-F", "@decelerator/worker", "start"]
