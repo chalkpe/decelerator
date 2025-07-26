@@ -6,13 +6,16 @@
   "description": "내 글을 부스트한 사람의 글을 모아주는 서비스",
   "scripts": {
     "build": "pnpm -r run build",
-    "dev": "pnpm -r run dev",
+    "dev": "pnpm -r --parallel run dev",
     "preinstall": "npx only-allow pnpm",
     "prepare": "husky || true"
   },
   "lint-staged": {
     "*": "biome check --write",
     "**/package.json": "sort-package-json"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.2",
@@ -21,6 +24,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "sort-package-json": "^3.4.0",
+    "tsc-watch": "^7.1.1",
     "typescript": "^5.8.3"
   },
   "packageManager": "pnpm@10.14.0-0+sha512.2cd47a0cbf5f1d1de7693a88307a0ede5be94e0d3b34853d800ee775efbea0650cb562b77605ec80bc8d925f5cd27c4dfe8bb04d3a0b76090784c664450d32d6",

@@ -1,10 +1,13 @@
+import type { visitWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
 import { AvatarImage } from '@radix-ui/react-avatar'
-import { redirect } from 'react-router'
+import { redirect, useFetcher } from 'react-router'
 import sanitizeHtml from 'sanitize-html'
 import { Avatar } from '~/components/ui/avatar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card'
 import createAuth from '~/lib/auth'
+import { globalForTemporal } from '~/lib/temporal'
 import { cn, getRelativeTime } from '~/lib/utils'
 import type { Route } from './+types/index'
 
@@ -23,12 +26,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { notifications }
 }
 
-// interface Item {
-//   notification: ReblogNotification['data']
-//   reaction?: StatusIndex['data']
-// }
-
 export default function Home({ loaderData }: Route.ComponentProps) {
+  const fetcher = useFetcher()
   const { notifications } = loaderData
 
   return (
@@ -50,13 +49,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     {reaction && ` · ${getRelativeTime(new Date(notification.createdAt), new Date(reaction.createdAt))} 후에 작성함`}
                   </CardDescription>
                 </CardHeader>
-
                 <CardContent className="flex flex-col gap-6">
                   {reaction && (
                     /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
                     <p dangerouslySetInnerHTML={{ __html: sanitizeHtml(reaction.data.content ?? '') }} />
                   )}
-
                   <Card className={cn(reaction ? '' : 'bg-muted')}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -73,6 +70,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </CardHeader>
                   </Card>
                 </CardContent>
+                <CardFooter>
+                  <fetcher.Form method="post" className="w-full">
+                    <input type="hidden" name="notificationId" value={notification.id} />
+                    <Button type="submit" disabled={fetcher.state !== 'idle'}>
+                      찾기
+                    </Button>
+                  </fetcher.Form>
+                </CardFooter>
               </Card>
             </li>
           ))}
@@ -80,4 +85,31 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       </div>
     </main>
   )
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData()
+  const notificationId = formData.get('notificationId')?.toString()
+  if (!notificationId) return null
+
+  const auth = await createAuth()
+  const session = await auth.api.getSession(request)
+  if (!session) return null
+
+  const domain = session.user.domain
+  const { accessToken } = await auth.api.getAccessToken({ body: { providerId: domain, userId: session.user.id } })
+
+  const temporal = globalForTemporal.temporal
+  if (!temporal) return null
+
+  try {
+    return await temporal.workflow.execute<typeof visitWorkflow>('visitWorkflow', {
+      taskQueue: 'decelerator',
+      workflowId: `visit-${domain}`,
+      args: [{ accessToken, domain, notificationId }],
+    })
+  } catch (error) {
+    console.error('Visit workflow failed:', error)
+    return null
+  }
 }

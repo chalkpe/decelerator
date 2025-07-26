@@ -1,13 +1,12 @@
 import { prisma } from '@decelerator/database'
 import { heartbeat, log, sleep } from '@temporalio/activity'
 import { createRestAPIClient, MastoHttpError } from 'masto'
-import ms from 'ms'
 
 export interface SyncIndexParams {
   domain: string
   accessToken: string
   accountId: string
-  limit?: ms.StringValue
+  statusId: string
 }
 
 export interface SyncIndexResult {
@@ -15,12 +14,16 @@ export interface SyncIndexResult {
 }
 
 export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIndexResult> {
-  const { domain, accessToken, accountId, limit = '30 days' } = params
-  log.info('Fetching data', { domain, accountId, limit })
+  const { domain, accessToken, accountId, statusId } = params
+  log.info('Fetching data', { domain, accountId, statusId })
 
-  const past = Date.now() - ms(limit)
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
-  const paginator = masto.v1.accounts.$select(accountId).statuses.list({ excludeReplies: true, excludeReblogs: false })
+  const paginator = masto.v1.accounts.$select(accountId).statuses.list({
+    limit: 5,
+    minId: statusId,
+    excludeReplies: true,
+    excludeReblogs: false,
+  })
 
   try {
     for await (const statuses of paginator) {
@@ -38,7 +41,7 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
         ...(status.reblog
           ? [
               {
-                domain: status.reblog.account.acct.includes('@') ? status.reblog.account.acct.split('@')[1] : domain,
+                domain,
                 statusId: status.reblog.id,
                 createdAt: new Date(status.reblog.createdAt),
                 accountId: status.reblog.account.id,
@@ -52,11 +55,6 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
       const { count } = await prisma.statusIndex.createMany({ data, skipDuplicates: true })
       if (count < data.length) {
         log.info('Existing data found, stopping fetch', { count })
-        break
-      }
-
-      if (statuses.some((n) => new Date(n.createdAt).getTime() < past)) {
-        log.info('Reached past limit, stopping fetch', { past })
         break
       }
 

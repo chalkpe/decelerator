@@ -80,6 +80,7 @@ services:
     networks:
       - internal_network
     environment:
+      - TEMPORAL_ADDRESS=temporal:7233
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
 
   website:
@@ -93,6 +94,7 @@ services:
       dockerfile: packages/website/Dockerfile
       args:
         - VITE_REDIRECT_URL=http://localhost:8234
+        - VITE_TEMPORAL_ADDRESS=temporal:7233
     ports:
       - 8234:8234
     networks:

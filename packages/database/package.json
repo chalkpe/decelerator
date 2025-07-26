@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "prisma generate && tsc --build",
-    "dev": "prisma studio",
+    "dev": "tsc-watch --onSuccess \"pnpm start\"",
     "start": "prisma db push --skip-generate && prisma studio"
   },
   "dependencies": {

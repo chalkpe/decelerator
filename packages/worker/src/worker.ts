@@ -1,13 +1,13 @@
+import 'dotenv/config'
 import * as activities from '@decelerator/core/activities'
 import { NativeConnection, Worker } from '@temporalio/worker'
 
 async function run() {
-  const worker = await Worker.create({
-    connection: await NativeConnection.connect({ address: 'temporal:7233', tls: false }),
-    activities,
-    taskQueue: 'decelerator',
-    workflowsPath: require.resolve('@decelerator/core/workflows'),
-  })
+  const workflowsPath = require.resolve('@decelerator/core/workflows')
+  const connection = await NativeConnection.connect({ address: process.env.TEMPORAL_ADDRESS, tls: false })
+  const worker = await Worker.create({ connection, activities, taskQueue: 'decelerator', workflowsPath })
+
+  console.log('Worker started, waiting for tasks...')
   await worker.run()
 }
 
