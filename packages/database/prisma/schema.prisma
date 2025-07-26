@@ -3,6 +3,10 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -27,6 +31,9 @@ model ReblogNotification {
   reactionId String?
   reaction   StatusIndex? @relation(fields: [domain, reactionId], references: [domain, statusId])
 
+  /// [ReblogNotificationData]
+  data Json
+
   @@unique([domain, notificationId])
   @@map("reblog_notification")
 }
@@ -38,6 +45,9 @@ model StatusIndex {
 
   accountId String
   reblogId  String?
+
+  /// [StatusIndexData]
+  data Json
 
   notifications ReblogNotification[]
 

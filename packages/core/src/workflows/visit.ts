@@ -1,16 +1,15 @@
 import { proxyActivities } from '@temporalio/workflow'
 import type * as findIndexActivities from '../activities/find-index'
 import type * as findNotificationActivities from '../activities/find-notification'
-import type * as insertIndexActivities from '../activities/insert-index'
-import type * as listStatusesActivities from '../activities/list-statuses'
+import type * as syncIndexActivities from '../activities/sync-index'
 import type * as updateNotificationActivities from '../activities/update-notification'
 
-const { listStatusesActivity: listStatuses } = proxyActivities<typeof listStatusesActivities>({
-  heartbeatTimeout: '10 seconds',
+const { syncIndexActivity: syncIndex } = proxyActivities<typeof syncIndexActivities>({
+  heartbeatTimeout: '30 seconds',
   startToCloseTimeout: '30 minutes',
   retry: {
     initialInterval: '5 minutes',
-    nonRetryableErrorTypes: ['MastoHttpError'],
+    nonRetryableErrorTypes: ['MastoHttpError', 'PrismaClientKnownRequestError'],
   },
 })
 const { findNotificationActivity: findNotification } = proxyActivities<typeof findNotificationActivities>({
@@ -22,10 +21,6 @@ const { updateNotificationActivity: updateNotification } = proxyActivities<typeo
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
 const { findIndexActivity: findIndex } = proxyActivities<typeof findIndexActivities>({
-  startToCloseTimeout: '15 seconds',
-  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
-})
-const { insertIndexActivity: insertIndex } = proxyActivities<typeof insertIndexActivities>({
   startToCloseTimeout: '15 seconds',
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
@@ -43,12 +38,11 @@ export async function visitWorkflow(input: VisitWorkflowInput) {
   if (!notification) return null
 
   // 이미 계산해 둔 반응 인덱스가 있다면 바로 반환
-  if (notification.reactionId) return await findIndex({ where: { domain, statusId: notification.reactionId } })
+  if (notification.reaction) return notification.reaction
 
-  // 최근 인덱스 이후에 작성된 게시글 인덱싱
+  // 게시글 인덱싱
   const { accountId } = notification
-  const recent = await findIndex({ where: { domain, accountId }, orderBy: { createdAt: 'desc' } })
-  await insertIndex(await listStatuses({ domain, accessToken, accountId, pagination: { minId: recent?.statusId } }))
+  await syncIndex({ domain, accessToken, accountId })
 
   // 반응 인덱스 찾기
   const reaction = await findIndex({
@@ -56,7 +50,13 @@ export async function visitWorkflow(input: VisitWorkflowInput) {
     orderBy: { createdAt: 'asc' },
   })
 
-  if (!reaction) return null
-  await updateNotification({ where: { domain_notificationId: { domain, notificationId } }, data: { reactionId: reaction.statusId } })
+  // 반응 인덱스가 생겼다면 업데이트
+  if (reaction) {
+    await updateNotification({
+      where: { domain_notificationId: { domain, notificationId } },
+      data: { reactionId: reaction.statusId },
+    })
+  }
+
   return reaction
 }

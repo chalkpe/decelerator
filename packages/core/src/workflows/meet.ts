@@ -1,25 +1,13 @@
 import { proxyActivities } from '@temporalio/workflow'
-import type * as findNotificationActivities from '../activities/find-notification'
-import type * as identifyActivities from '../activities/identify'
-import type * as insertNotificationActivities from '../activities/insert-notification'
-import type * as listNotificationsActivities from '../activities/list-notifications'
+import type * as syncNotificationsActivities from '../activities/sync-notifications'
 
-const { findNotificationActivity: find } = proxyActivities<typeof findNotificationActivities>({
-  startToCloseTimeout: '15 seconds',
-  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
-})
-const { identifyActivity: identify } = proxyActivities<typeof identifyActivities>({
-  startToCloseTimeout: '15 seconds',
-  retry: { nonRetryableErrorTypes: ['MastoHttpError'] },
-})
-const { insertNotificationActivity: insert } = proxyActivities<typeof insertNotificationActivities>({
-  startToCloseTimeout: '15 seconds',
-  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
-})
-const { listNotificationsActivity: list } = proxyActivities<typeof listNotificationsActivities>({
-  heartbeatTimeout: '5 seconds',
-  startToCloseTimeout: '15 seconds',
-  retry: { nonRetryableErrorTypes: ['MastoHttpError'] },
+const { syncNotificationsActivity: syncNotifications } = proxyActivities<typeof syncNotificationsActivities>({
+  heartbeatTimeout: '30 seconds',
+  startToCloseTimeout: '30 minutes',
+  retry: {
+    initialInterval: '5 minutes',
+    nonRetryableErrorTypes: ['MastoHttpError', 'PrismaClientKnownRequestError'],
+  },
 })
 
 export interface MeetWorkflowInput {
@@ -29,9 +17,5 @@ export interface MeetWorkflowInput {
 
 export async function meetWorkflow(input: MeetWorkflowInput) {
   const { domain, accessToken } = input
-
-  const { user } = await identify({ domain, accessToken })
-  const recent = await find({ where: { domain, userId: user.id }, orderBy: { createdAt: 'desc' } })
-
-  await insert(await list({ domain, accessToken, pagination: { minId: recent?.notificationId } }))
+  await syncNotifications({ domain, accessToken })
 }

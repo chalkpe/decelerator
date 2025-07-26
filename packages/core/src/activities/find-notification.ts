@@ -7,5 +7,5 @@ export interface FindNotificationParams {
 
 export async function findNotificationActivity(params: FindNotificationParams) {
   const { where, orderBy } = params
-  return await prisma.reblogNotification.findFirst({ where, orderBy })
+  return await prisma.reblogNotification.findFirst({ where, orderBy, include: { reaction: true } })
 }
