@@ -41,8 +41,8 @@ export async function visitWorkflow(input: VisitWorkflowInput) {
   if (notification.reaction) return notification.reaction
 
   // 게시글 인덱싱
-  const { accountId, statusId } = notification
-  await syncIndex({ domain, accessToken, accountId, statusId })
+  const { accountId } = notification
+  await syncIndex({ domain, accessToken, accountId, minId: notification.statusId })
 
   // 반응 인덱스 찾기
   const reaction = await findIndex({

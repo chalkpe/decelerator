@@ -1,12 +1,15 @@
 import { prisma } from '@decelerator/database'
-import { heartbeat, log, sleep } from '@temporalio/activity'
+import { heartbeat, sleep } from '@temporalio/activity'
 import { createRestAPIClient, MastoHttpError } from 'masto'
+import ms from 'ms'
 
 export interface SyncIndexParams {
   domain: string
   accessToken: string
   accountId: string
-  statusId: string
+  minId?: string
+  maxId?: string
+  limit?: ms.StringValue
 }
 
 export interface SyncIndexResult {
@@ -14,21 +17,14 @@ export interface SyncIndexResult {
 }
 
 export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIndexResult> {
-  const { domain, accessToken, accountId, statusId } = params
-  log.info('Fetching data', { domain, accountId, statusId })
-
-  const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
-  const paginator = masto.v1.accounts.$select(accountId).statuses.list({
-    limit: 5,
-    minId: statusId,
-    excludeReplies: true,
-    excludeReblogs: false,
-  })
+  const { domain, accessToken, accountId, minId, maxId, limit = '10 years' } = params
 
   try {
-    for await (const statuses of paginator) {
-      log.info('Fetched data', { count: statuses.length })
+    const past = new Date(Date.now() - ms(limit))
+    const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
+    const paginator = masto.v1.accounts.$select(accountId).statuses.list({ excludeReplies: true, excludeReblogs: false, minId, maxId })
 
+    for await (const statuses of paginator) {
       const data = statuses.flatMap((status) => [
         {
           domain,
@@ -53,19 +49,14 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
       ])
 
       const { count } = await prisma.statusIndex.createMany({ data, skipDuplicates: true })
-      if (count < data.length) {
-        log.info('Existing data found, stopping fetch', { count })
-        break
-      }
+      if (count < data.length) break
+      if (data.some((s) => s.createdAt < past)) break
 
       heartbeat()
       await sleep(1000)
     }
   } catch (error) {
-    if (error instanceof MastoHttpError && error.statusCode === 429) {
-      log.warn('Rate limit exceeded', { domain })
-      return { rateLimitExceeded: true }
-    }
+    if (error instanceof MastoHttpError && error.statusCode === 429) return { rateLimitExceeded: true }
     throw error
   }
   return { rateLimitExceeded: false }

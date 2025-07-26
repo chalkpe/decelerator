@@ -1,11 +1,13 @@
 import { prisma } from '@decelerator/database'
-import { heartbeat, log, sleep } from '@temporalio/activity'
+import { heartbeat, sleep } from '@temporalio/activity'
 import { createRestAPIClient, MastoHttpError } from 'masto'
 import ms from 'ms'
 
 export interface SyncNotificationsParams {
   domain: string
   accessToken: string
+  minId?: string
+  maxId?: string
   limit?: ms.StringValue
 }
 
@@ -14,17 +16,14 @@ export interface SyncNotificationsResult {
 }
 
 export async function syncNotificationsActivity(params: SyncNotificationsParams): Promise<SyncNotificationsResult> {
-  const { domain, accessToken, limit = '30 days' } = params
-  log.info('Fetching notifications', { domain, limit })
-
-  const past = Date.now() - ms(limit)
-  const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
-  const paginator = masto.v1.notifications.list({ types: ['reblog'] })
+  const { domain, accessToken, minId, maxId, limit = '10 years' } = params
 
   try {
-    for await (const notifications of paginator) {
-      log.info('Fetched notifications', { count: notifications.length })
+    const past = new Date(Date.now() - ms(limit))
+    const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
+    const paginator = masto.v1.notifications.list({ types: ['reblog'], minId, maxId })
 
+    for await (const notifications of paginator) {
       const data = notifications.flatMap((notification) =>
         notification.type === 'reblog'
           ? [
@@ -43,24 +42,14 @@ export async function syncNotificationsActivity(params: SyncNotificationsParams)
       )
 
       const { count } = await prisma.reblogNotification.createMany({ data, skipDuplicates: true })
-      if (count < data.length) {
-        log.info('Existing data found, stopping fetch', { count })
-        break
-      }
-
-      if (notifications.some((n) => new Date(n.createdAt).getTime() < past)) {
-        log.info('Reached past limit, stopping fetch', { past })
-        break
-      }
+      if (count < data.length) break
+      if (data.some((n) => n.createdAt < past)) break
 
       heartbeat()
       await sleep(1000)
     }
   } catch (error) {
-    if (error instanceof MastoHttpError && error.statusCode === 429) {
-      log.warn('Rate limit exceeded', { domain })
-      return { rateLimitExceeded: true }
-    }
+    if (error instanceof MastoHttpError && error.statusCode === 429) return { rateLimitExceeded: true }
     throw error
   }
   return { rateLimitExceeded: false }

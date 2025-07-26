@@ -13,9 +13,12 @@ const { syncNotificationsActivity: syncNotifications } = proxyActivities<typeof 
 export interface MeetWorkflowInput {
   domain: string
   accessToken: string
+  minId?: string
+  maxId?: string
 }
 
 export async function meetWorkflow(input: MeetWorkflowInput) {
-  const { domain, accessToken } = input
-  await syncNotifications({ domain, accessToken })
+  const { domain, accessToken, minId, maxId } = input
+
+  await syncNotifications({ domain, accessToken, minId, maxId })
 }
