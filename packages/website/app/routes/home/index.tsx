@@ -7,7 +7,7 @@ import { Avatar } from '~/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import createAuth from '~/lib/auth'
 import { globalForTemporal } from '~/lib/temporal'
-import { cn, getRelativeTime } from '~/lib/utils'
+import { cn, getAbbreviatedTime, getFullTime } from '~/lib/utils'
 import type { Route } from './+types/index'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -26,16 +26,22 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 
   const notifications = await prisma.reblogNotification.findMany({
-    where: { userId: session.user.mastodonId },
+    where: { userId: session.user.mastodonId, domain: session.user.domain, reactionId: { not: null } },
     orderBy: { createdAt: 'desc' },
     include: { reaction: true },
   })
 
-  return { notifications }
+  return {
+    notifications: notifications.filter(
+      (n) => n.reaction && n.reaction.createdAt.getTime() - n.createdAt.getTime() < 1000 * 60 * 5, // 5분 이내에 작성된 반응만 필터링
+    ),
+  }
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { notifications } = loaderData
+
+  console.log(notifications)
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted">
@@ -52,14 +58,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     {notification.account.displayName}
                   </CardTitle>
                   <CardDescription>
-                    {getRelativeTime(new Date(notification.createdAt))} 전에 부스트함
-                    {reaction && ` · ${getRelativeTime(new Date(notification.createdAt), new Date(reaction.createdAt))} 후에 작성함`}
+                    {getAbbreviatedTime(new Date(notification.createdAt))} 부스트함
+                    {reaction && ` · ${getFullTime(new Date(notification.createdAt), new Date(reaction.createdAt))} 작성함`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-6">
                   {reaction && (
-                    /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
-                    <p dangerouslySetInnerHTML={{ __html: sanitizeHtml(reaction.data.content ?? '') }} />
+                    <p
+                      /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(reaction.data.reblog?.content || reaction.data.content) }}
+                    />
                   )}
                   <Card className={cn(reaction ? '' : 'bg-muted')}>
                     <CardHeader>
@@ -69,6 +77,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                         </Avatar>
                         {notification.status?.account.displayName}
                       </CardTitle>
+                      <CardDescription>{getAbbreviatedTime(new Date(notification.status?.createdAt))} 작성함</CardDescription>
                       <CardContent
                         /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.status?.content ?? '') }}

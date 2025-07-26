@@ -56,14 +56,25 @@ export async function daemonWorkflow({ domain }: DaemonWorkflowInput) {
     // 모든 계정의 알림을 동기화
     for (const { user, accessToken } of accounts) {
       if (!accessToken) continue
-      const notification = await findNotification({ where: { domain, userId: user.mastodonId }, orderBy: { notificationId: 'desc' } })
-      await syncNotifications({ domain, accessToken, minId: notification?.notificationId })
+
+      const latest = await findNotification({ where: { domain, userId: user.mastodonId }, orderBy: { notificationId: 'desc' } })
+      await syncNotifications({ domain, accessToken, minId: latest?.notificationId })
+
+      const oldest = await findNotification({ where: { domain, userId: user.mastodonId }, orderBy: { notificationId: 'asc' } })
+      await syncNotifications({ domain, accessToken, maxId: oldest?.notificationId })
     }
 
     // 아직 반응을 찾지 못한 모든 계정의 알림들을 순회
-    for (const notification of await findNotifications({ where: { domain, reactionId: null }, orderBy: { notificationId: 'desc' } })) {
+    for (const notification of await findNotifications({
+      where: { domain, reactionId: null },
+      orderBy: { notificationId: 'desc' },
+      select: { userId: true, accountId: true, notificationId: true, statusId: true, createdAt: true },
+    })) {
       const accessToken = accounts.find((account) => account.user.mastodonId === notification.userId)?.accessToken
       if (!accessToken) continue
+
+      const existing = await findIndex({ where: { domain, accountId: notification.accountId, createdAt: { gt: notification.createdAt } } })
+      if (existing) continue
 
       // 인덱스 동기화
       await syncIndex({ domain, accessToken, accountId: notification.accountId, minId: notification.statusId })
@@ -83,7 +94,7 @@ export async function daemonWorkflow({ domain }: DaemonWorkflowInput) {
       }
     }
 
-    await sleep('3 minutes')
+    await sleep('1 minute')
   }
   return await continueAsNew({ domain })
 }
