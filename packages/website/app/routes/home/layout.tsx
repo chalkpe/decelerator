@@ -1,4 +1,4 @@
-import { ChevronUp, Home, ListIcon, Settings, User2 } from 'lucide-react'
+import { ChevronUp, Home, ListIcon, User2 } from 'lucide-react'
 import { Link, Outlet, redirect, useNavigate } from 'react-router'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import {
@@ -32,7 +32,7 @@ export default function HomeLayout() {
   const items = [
     { title: '홈', url: '/home', icon: Home },
     { title: '타임라인', url: '/home/timeline', icon: ListIcon },
-    { title: '설정', url: '/settings', icon: Settings },
+    // { title: '설정', url: '/settings', icon: Settings },
   ]
 
   return (
@@ -80,7 +80,7 @@ export default function HomeLayout() {
         <SidebarRail />
       </Sidebar>
 
-      <main className="flex min-h-screen p-6">
+      <main className="w-full min-h-screen">
         <Outlet />
       </main>
     </SidebarProvider>
