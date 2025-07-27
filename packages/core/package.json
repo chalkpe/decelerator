@@ -8,6 +8,10 @@
       "default": "./dist/activities.js",
       "types": "./dist/activities.d.ts"
     },
+    "./constants": {
+      "default": "./dist/constants.js",
+      "types": "./dist/constants.d.ts"
+    },
     "./workflows": {
       "default": "./dist/workflows.js",
       "types": "./dist/workflows.d.ts"

@@ -1,9 +1,16 @@
 import { continueAsNew, executeChild, proxyActivities, sleep, workflowInfo } from '@temporalio/workflow'
+import ms from 'ms'
 import type * as findAccountsActivities from '../activities/find-accounts'
+import type * as findNotificationsActivities from '../activities/find-notifications'
+import { maxReactionDelay } from '../constants'
 import type { fetchNotificationsWorkflow } from './fetch-notifications'
 import type { fetchReactionWorkflow } from './fetch-reaction'
 
 const { findAccountsActivity: findAccounts } = proxyActivities<typeof findAccountsActivities>({
+  startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
+})
+const { findNotificationsActivity: findNotifications } = proxyActivities<typeof findNotificationsActivities>({
   startToCloseTimeout: '15 seconds',
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
@@ -16,7 +23,7 @@ export async function daemonWorkflow({ domain }: DaemonWorkflowInput) {
   while (!workflowInfo().continueAsNewSuggested) {
     const queue = new Set<string>()
 
-    // 모든 계정의 신규 알림들을 찾아서 큐에 추가
+    // 모든 계정의 신규 알림들을 가져와서 큐에 추가
     for (const { accountId: userId } of await findAccounts({ where: { providerId: domain } })) {
       const { notificationIds } = await executeChild<typeof fetchNotificationsWorkflow>('fetchNotificationsWorkflow', {
         workflowId: `fetch-notifications-${domain}-${userId}`,
@@ -25,7 +32,15 @@ export async function daemonWorkflow({ domain }: DaemonWorkflowInput) {
       for (const notificationId of notificationIds) queue.add(notificationId)
     }
 
-    // 새 알림들의 반응 인덱스를 업데이트
+    // 모든 계정의 기존 알림 중 아직 미확정 상태의 알림들을 찾아서 큐에 추가
+    for (const { notificationId } of await findNotifications({
+      where: { domain, reactionId: null, createdAt: { gt: new Date(Date.now() - ms(maxReactionDelay)) } },
+      select: { notificationId: true },
+    })) {
+      queue.add(notificationId)
+    }
+
+    // 큐의 모든 알림들의 반응을 가져오기
     const sortedQueue = Array.from(queue).toSorted((a, b) => b.localeCompare(a, undefined, { numeric: true }))
     for (const notificationId of sortedQueue) {
       try {

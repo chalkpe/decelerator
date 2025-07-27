@@ -1,3 +1,4 @@
+import { taskQueue } from '@decelerator/core/constants'
 import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
 import { AvatarImage } from '@radix-ui/react-avatar'
@@ -19,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!session) return redirect('/')
 
   await temporal.workflow.start<typeof daemonWorkflow>('daemonWorkflow', {
-    taskQueue: 'decelerator',
+    taskQueue,
     workflowId: `daemon-${session.user.domain}`,
     workflowIdConflictPolicy: 'USE_EXISTING',
     args: [{ domain: session.user.domain }],
