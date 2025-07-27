@@ -33,15 +33,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     notifications: notifications.filter(
-      (n) => n.reaction && n.reaction.createdAt.getTime() - n.createdAt.getTime() < 1000 * 60 * 5, // 5분 이내에 작성된 반응만 필터링
+      (n) => n.reaction && n.reaction.createdAt.getTime() - n.createdAt.getTime() < 1000 * 60 * 2, // 2분 이내에 작성된 반응만 필터링
     ),
   }
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { notifications } = loaderData
-
-  console.log(notifications)
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted">

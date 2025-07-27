@@ -1,11 +1,7 @@
-import { prisma, type StatusIndexOrderByWithRelationInput, type StatusIndexWhereInput } from '@decelerator/database'
+import { prisma, type StatusIndexFindFirstArgs } from '@decelerator/database'
 
-export interface FindIndexParams {
-  where: StatusIndexWhereInput
-  orderBy?: StatusIndexOrderByWithRelationInput
-}
+export type FindIndexParams = StatusIndexFindFirstArgs
 
 export async function findIndexActivity(params: FindIndexParams) {
-  const { where, orderBy } = params
-  return await prisma.statusIndex.findFirst({ where, orderBy })
+  return await prisma.statusIndex.findFirst(params)
 }
