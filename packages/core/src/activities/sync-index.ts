@@ -39,7 +39,7 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
               createdAt: new Date(status.reblog.createdAt),
               accountId: status.reblog.account.id,
               reblogId: null,
-              data: status,
+              data: status.reblog,
             },
           ]
         : []),
