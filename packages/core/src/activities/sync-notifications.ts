@@ -9,13 +9,17 @@ export interface SyncNotificationsParams {
   maxId?: string
 }
 
-export async function syncNotificationsActivity(params: SyncNotificationsParams) {
+export interface SyncNotificationsResult {
+  count: number
+}
+
+export async function syncNotificationsActivity(params: SyncNotificationsParams): Promise<SyncNotificationsResult> {
   const { domain, accessToken, minId, maxId } = params
 
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
   const notifications = await masto.v1.notifications.list({ types: ['reblog'], minId, maxId })
 
-  const result = await prisma.reblogNotification.createMany({
+  const { count } = await prisma.reblogNotification.createMany({
     skipDuplicates: true,
     data: notifications.flatMap((notification) =>
       notification.type === 'reblog'
@@ -36,5 +40,5 @@ export async function syncNotificationsActivity(params: SyncNotificationsParams)
   })
 
   await sleep('3 seconds')
-  return result
+  return { count }
 }

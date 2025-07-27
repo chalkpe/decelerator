@@ -1,4 +1,4 @@
-import createAuth from '~/lib/auth'
+import { createAuth } from '~/lib/auth.server'
 import type { Route } from './+types/catch'
 
 export async function loader({ request }: Route.LoaderArgs) {

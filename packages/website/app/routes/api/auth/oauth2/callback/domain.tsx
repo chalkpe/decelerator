@@ -1,4 +1,4 @@
-import createAuth from '~/lib/auth'
+import { createAuth } from '~/lib/auth.server'
 import type { Route } from './+types/domain'
 
 export async function loader({ request }: Route.LoaderArgs) {

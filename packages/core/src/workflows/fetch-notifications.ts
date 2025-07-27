@@ -1,8 +1,8 @@
 import { ApplicationFailure, proxyActivities } from '@temporalio/workflow'
-import type * as findAccountActivities from '../activities/find-account'
-import type * as findNotificationActivities from '../activities/find-notification'
-import type * as findNotificationsActivities from '../activities/find-notifications'
-import type * as syncNotificationsActivities from '../activities/sync-notifications'
+import type * as findAccountActivities from '../activities/find-account.js'
+import type * as findNotificationActivities from '../activities/find-notification.js'
+import type * as findNotificationsActivities from '../activities/find-notifications.js'
+import type * as syncNotificationsActivities from '../activities/sync-notifications.js'
 
 const { findAccountActivity: findAccount } = proxyActivities<typeof findAccountActivities>({
   startToCloseTimeout: '15 seconds',

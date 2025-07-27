@@ -10,13 +10,17 @@ export interface SyncIndexParams {
   maxId?: string
 }
 
-export async function syncIndexActivity(params: SyncIndexParams) {
+export interface SyncIndexResult {
+  count: number
+}
+
+export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIndexResult> {
   const { domain, accessToken, accountId, minId, maxId } = params
 
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
   const statuses = await masto.v1.accounts.$select(accountId).statuses.list({ excludeReplies: true, excludeReblogs: false, minId, maxId })
 
-  const result = await prisma.statusIndex.createMany({
+  const { count } = await prisma.statusIndex.createMany({
     skipDuplicates: true,
     data: statuses.flatMap((status) => [
       {
@@ -43,5 +47,5 @@ export async function syncIndexActivity(params: SyncIndexParams) {
   })
 
   await sleep('3 seconds')
-  return result
+  return { count }
 }

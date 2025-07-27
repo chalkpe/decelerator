@@ -5,7 +5,7 @@ import { genericOAuth } from 'better-auth/plugins'
 import { scopes } from '~/lib/masto'
 import pkg from '../../../../package.json'
 
-export default async function createAuth() {
+export async function createAuth() {
   const apps = await prisma.app.findMany()
   return betterAuth({
     appName: pkg.name,

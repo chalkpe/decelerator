@@ -2,6 +2,7 @@
   "name": "@decelerator/worker",
   "version": "0.0.1",
   "private": true,
+  "type": "commonjs",
   "main": "dist/worker.js",
   "scripts": {
     "build": "tsc --build",

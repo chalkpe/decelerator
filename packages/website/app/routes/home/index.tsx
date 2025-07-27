@@ -6,15 +6,12 @@ import { redirect } from 'react-router'
 import sanitizeHtml from 'sanitize-html'
 import { Avatar } from '~/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import createAuth from '~/lib/auth'
-import { globalForTemporal } from '~/lib/temporal'
+import { createAuth } from '~/lib/auth.server'
+import { temporal } from '~/lib/temporal.server'
 import { cn, getAbbreviatedTime, getFullTime } from '~/lib/utils'
 import type { Route } from './+types/index'
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const temporal = globalForTemporal.temporal
-  if (!temporal) return redirect('/')
-
   const auth = await createAuth()
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')

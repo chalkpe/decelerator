@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "Core functionality for the Decelerator project",
+  "type": "module",
   "exports": {
     "./activities": {
       "default": "./dist/activities.js",

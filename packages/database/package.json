@@ -12,7 +12,8 @@
   "scripts": {
     "build": "prisma generate && tsc --build",
     "dev": "tsc-watch --onSuccess \"pnpm start\"",
-    "start": "prisma db push --skip-generate && prisma studio --browser none"
+    "push": "prisma db push --skip-generate",
+    "start": "prisma studio --browser none"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

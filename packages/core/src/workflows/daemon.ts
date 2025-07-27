@@ -1,10 +1,10 @@
 import { continueAsNew, executeChild, proxyActivities, sleep, workflowInfo } from '@temporalio/workflow'
 import ms from 'ms'
-import type * as findAccountsActivities from '../activities/find-accounts'
-import type * as findNotificationsActivities from '../activities/find-notifications'
-import { maxReactionDelay } from '../constants'
-import type { fetchNotificationsWorkflow } from './fetch-notifications'
-import type { fetchReactionWorkflow } from './fetch-reaction'
+import type * as findAccountsActivities from '../activities/find-accounts.js'
+import type * as findNotificationsActivities from '../activities/find-notifications.js'
+import { maxReactionDelay } from '../constants.js'
+import type { fetchNotificationsWorkflow } from './fetch-notifications.js'
+import type { fetchReactionWorkflow } from './fetch-reaction.js'
 
 const { findAccountsActivity: findAccounts } = proxyActivities<typeof findAccountsActivities>({
   startToCloseTimeout: '15 seconds',
