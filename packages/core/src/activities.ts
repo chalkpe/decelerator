@@ -1,3 +1,4 @@
+export * from './activities/find-account'
 export * from './activities/find-accounts'
 export * from './activities/find-index'
 export * from './activities/find-notification'

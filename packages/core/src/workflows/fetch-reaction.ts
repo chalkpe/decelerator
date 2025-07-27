@@ -1,9 +1,14 @@
-import { proxyActivities } from '@temporalio/workflow'
+import { ApplicationFailure, proxyActivities } from '@temporalio/workflow'
+import type * as findAccountActivities from '../activities/find-account'
 import type * as findIndexActivities from '../activities/find-index'
 import type * as findNotificationActivities from '../activities/find-notification'
 import type * as syncIndexActivities from '../activities/sync-index'
 import type * as updateNotificationActivities from '../activities/update-notification'
 
+const { findAccountActivity: findAccount } = proxyActivities<typeof findAccountActivities>({
+  startToCloseTimeout: '15 seconds',
+  retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
+})
 const { findIndexActivity: findIndex } = proxyActivities<typeof findIndexActivities>({
   startToCloseTimeout: '15 seconds',
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
@@ -27,30 +32,26 @@ const { updateNotificationActivity: updateNotification } = proxyActivities<typeo
 
 export interface FetchReactionWorkflowInput {
   domain: string
-  accessToken: string
   notificationId: string
 }
 
-export async function fetchReactionWorkflow({ domain, accessToken, notificationId }: FetchReactionWorkflowInput) {
+export async function fetchReactionWorkflow({ domain, notificationId }: FetchReactionWorkflowInput) {
   // 알림 찾기
   const notification = await findNotification({ where: { domain, notificationId } })
-  if (!notification) throw new Error(`Notification with ID ${notificationId} not found`)
+  if (!notification) throw ApplicationFailure.nonRetryable('Notification not found', 'NotificationNotFound')
+
+  // 계정 찾기
+  const account = await findAccount({ where: { providerId: domain, accountId: notification.userId }, select: { accessToken: true } })
+  if (!account?.accessToken) throw ApplicationFailure.nonRetryable('Unauthorized', 'Unauthorized')
 
   // 인덱스 동기화
-  const { accountId, statusId: minId } = notification
-  await syncIndex({ domain, accessToken, accountId, minId })
+  const { accountId, statusId: minId, createdAt: gt } = notification
+  await syncIndex({ domain, accessToken: account.accessToken, accountId, minId })
 
   // 반응 인덱스 찾기
-  const reaction = await findIndex({
-    where: { domain, accountId, createdAt: { gt: notification.createdAt }, reblogId: null },
-    orderBy: { createdAt: 'asc' },
-  })
-
-  if (!reaction) throw new Error(`Reaction for notification ${notificationId} not found`)
+  const reaction = await findIndex({ where: { domain, accountId, createdAt: { gt }, reblogId: null }, orderBy: { createdAt: 'asc' } })
+  if (!reaction) throw ApplicationFailure.nonRetryable('Reaction not found', 'ReactionNotFound')
 
   // 알림에 반응 ID 업데이트
-  await updateNotification({
-    where: { domain_notificationId: { domain, notificationId } },
-    data: { reactionId: reaction.statusId },
-  })
+  await updateNotification({ where: { domain_notificationId: { domain, notificationId } }, data: { reactionId: reaction.statusId } })
 }
