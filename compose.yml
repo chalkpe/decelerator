@@ -42,7 +42,6 @@ services:
       - 8233:8233
     networks:
       - internal_network
-      - external_network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8233']
       interval: 10s
@@ -61,7 +60,6 @@ services:
       - 5555:5555
     networks:
       - internal_network
-      - external_network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5555']
       interval: 10s
@@ -79,6 +77,7 @@ services:
       dockerfile: packages/worker/Dockerfile
     networks:
       - internal_network
+      - external_network
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
@@ -111,5 +110,4 @@ services:
 networks:
   external_network:
   internal_network:
-    driver: bridge
-    name: temporal-network
+    internal: true

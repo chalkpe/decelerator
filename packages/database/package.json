@@ -11,9 +11,10 @@
   },
   "scripts": {
     "build": "prisma generate && tsc --build",
-    "dev": "tsc-watch --onSuccess \"pnpm start\"",
+    "dev": "tsc-watch --onSuccess \"pnpm run studio\"",
     "push": "prisma db push --skip-generate",
-    "start": "prisma studio --browser none"
+    "start": "pnpm run push && pnpm run studio",
+    "studio": "prisma studio --browser none"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
