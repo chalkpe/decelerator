@@ -6,16 +6,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getAbbreviatedTime(date: Date, now = new Date()) {
-  const result = getDateDistanceText(getDateDistance(date, now), {
-    hours: (t) => t.days === 0,
-    minutes: (t) => t.days === 0 && t.hours === 0,
-    seconds: (t) => t.days === 0 && t.hours === 0 && t.minutes === 0,
-  })
-  return result ? `${result} 전에` : '방금'
+export interface FormatDistanceOptions {
+  type: 'abbreviated' | 'full'
+  date: Date
+  now?: Date
+  suffix: string
+  immediateText?: string
 }
 
-export function getFullTime(date: Date, now = new Date()) {
-  const result = getDateDistanceText(getDateDistance(date, now))
-  return result ? `${result} 후에` : '즉시'
+export function formatDistance({ type, date, now = new Date(), suffix, immediateText = '방금' }: FormatDistanceOptions) {
+  const result = getDateDistanceText(
+    getDateDistance(date, now),
+    type === 'abbreviated'
+      ? {
+          hours: (t) => t.days === 0,
+          minutes: (t) => t.days === 0 && t.hours === 0,
+          seconds: (t) => t.days === 0 && t.hours === 0 && t.minutes === 0,
+        }
+      : undefined,
+  )
+
+  return result ? `${result} ${suffix}` : immediateText
 }

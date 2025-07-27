@@ -24,9 +24,12 @@ model ReblogNotification {
   notificationId String
   createdAt      DateTime
 
-  userId    String
-  statusId  String
-  accountId String
+  userId String
+  user   User   @relation(fields: [domain, userId], references: [domain, mastodonId])
+
+  statusId   String
+  accountId  String
+  fromMutual Boolean
 
   reactionId String?
   reaction   StatusIndex? @relation(fields: [domain, reactionId], references: [domain, statusId])
@@ -70,7 +73,10 @@ model User {
   username   String
   mastodonId String
 
+  notifications ReblogNotification[]
+
   @@unique([email])
+  @@unique([domain, mastodonId])
   @@map("user")
 }
 

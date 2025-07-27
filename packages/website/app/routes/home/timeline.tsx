@@ -7,8 +7,7 @@ import { Avatar } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
-
-import { cn, getAbbreviatedTime, getFullTime } from '~/lib/utils'
+import { cn, formatDistance } from '~/lib/utils'
 import type { Route } from './+types/timeline'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -34,9 +33,9 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
 
   return (
     <ul className="w-full flex flex-col items-stretch justify-center gap-4 p-6">
-      {notifications.map(({ data: notification, reaction }) => (
+      {notifications.map(({ data: notification, reaction, fromMutual }) => (
         <li key={notification.id} className="w-full">
-          <Card className={cn(reaction ? '' : 'bg-muted')}>
+          <Card className={cn(reaction ? '' : 'bg-muted', fromMutual ? '' : 'border-2 border-red-500')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Avatar>
@@ -45,8 +44,9 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
                 {notification.account.displayName}
               </CardTitle>
               <CardDescription>
-                {getAbbreviatedTime(new Date(notification.createdAt))} 부스트함
-                {reaction && ` · ${getFullTime(new Date(notification.createdAt), new Date(reaction.createdAt))} 작성함`}
+                {formatDistance({ type: 'abbreviated', date: new Date(notification.createdAt), suffix: '전에' })} 부스트함
+                {reaction &&
+                  ` · ${formatDistance({ type: 'full', date: new Date(notification.createdAt), now: new Date(reaction.createdAt), suffix: '후에', immediateText: '바로' })} 작성함`}
               </CardDescription>
               {reaction?.data.url && (
                 <CardAction>
@@ -77,7 +77,9 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
                     </Avatar>
                     {notification.status?.account.displayName}
                   </CardTitle>
-                  <CardDescription>{getAbbreviatedTime(new Date(notification.status?.createdAt))} 작성함</CardDescription>
+                  <CardDescription>
+                    {formatDistance({ type: 'abbreviated', date: new Date(notification.status?.createdAt), suffix: '전에' })} 작성함
+                  </CardDescription>
                   {notification.status?.url && (
                     <CardAction>
                       <Button

@@ -48,6 +48,13 @@ export async function fetchReactionWorkflow({ domain, notificationId }: FetchRea
   const { accountId, statusId: minId, createdAt: gt } = notification
   await syncIndex({ domain, accessToken: account.accessToken, accountId, minId })
 
+  // 부스트 인덱스 찾기
+  const reblog = await findIndex({
+    where: { domain, accountId, reblogId: notification.statusId },
+    orderBy: { createdAt: 'asc' },
+  })
+  if (!reblog) throw ApplicationFailure.nonRetryable('Reblog not found', 'ReblogNotFound')
+
   // 반응 인덱스 찾기
   const reaction = await findIndex({ where: { domain, accountId, createdAt: { gt }, reblogId: null }, orderBy: { createdAt: 'asc' } })
   if (!reaction) throw ApplicationFailure.nonRetryable('Reaction not found', 'ReactionNotFound')

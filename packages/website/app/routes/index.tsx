@@ -98,7 +98,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (!app) {
     const redirectUri = createRedirectUri(domain)
     const masto = createRestAPIClient({ url: `https://${domain}` })
-    const { clientId, clientSecret } = await masto.v1.apps.create({ clientName: pkg.name, scopes, redirectUris: redirectUri })
+    const { clientId, clientSecret } = await masto.v1.apps.create({ clientName: pkg.displayName, scopes, redirectUris: redirectUri })
 
     if (!clientId || !clientSecret) throw new Error('앱 생성에 실패했습니다.')
     app = await prisma.app.create({ data: { domain, clientId, clientSecret, redirectUri } })
