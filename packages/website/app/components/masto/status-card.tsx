@@ -64,7 +64,6 @@ const StatusCardDescriptionWithNotification: FC<ComponentProps<'div'> & { notifi
       <span suppressHydrationWarning>{formatDistance({ type: 'abbreviated', date, suffix: '전에' })} 부스트함</span>
       {divider('divider-1')}
       <span>{formatDistance({ type: 'full', date, now, suffix: '후에', immediateText: '바로' })} 작성함</span>
-      {divider('divider-2')}
       {Children.toArray(children).flatMap((child, index) => [divider(index), child])}
     </CardDescription>
   )

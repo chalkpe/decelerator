@@ -80,7 +80,7 @@ export default function HomeLayout() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset className="max-w-full min-h-screen overflow-x-auto">
+      <SidebarInset className="max-w-full max-h-screen overflow-x-auto">
         <Outlet />
       </SidebarInset>
     </SidebarProvider>
