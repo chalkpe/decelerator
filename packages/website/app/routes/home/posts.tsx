@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { redirect, useFetcher, useRevalidator } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
+import { type MutualMode, MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
   StatusCardAction,
@@ -12,6 +13,7 @@ import {
   StatusCardDescriptionWithNotification,
   StatusCardTitle,
 } from '~/components/masto/status-card'
+import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
@@ -47,14 +49,23 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher<typeof action>()
 
   const [sortBy, setSortBy] = useState('createdAt')
+  const [timeout, setTimeout] = useState(1000 * 60 * 2)
+  const [mutualMode, setMutualMode] = useState<MutualMode>('mutual')
 
   const listRef = useRef<List>(null)
   const cardsRef = useRef<Record<string, HTMLElement | null>>({})
   const sizesRef = useRef<Record<string, number>>({})
 
   const notifications = useMemo(
-    () => fetcher.data?.notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])) ?? [],
-    [fetcher.data],
+    () =>
+      fetcher.data?.notifications
+        .flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : []))
+        .filter(
+          ({ reaction, createdAt, fromMutual }) =>
+            reaction.createdAt.getTime() - createdAt.getTime() <= timeout &&
+            (mutualMode === 'all' || (mutualMode === 'foreigner' && !fromMutual) || (mutualMode === 'mutual' && fromMutual)),
+        ) ?? [],
+    [fetcher.data, mutualMode, timeout],
   )
 
   const posts = useMemo(
@@ -106,7 +117,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
             <StatusCardTitle />
             <StatusCardDescription>
               <span>{count}번 부스트됨</span>
-              {fetcher.data?.statusId === status.id && <span>{fetcher.data.notifications.length}개의 반응</span>}
+              {fetcher.data?.statusId === status.id && <span>{notifications.length}개의 반응</span>}
             </StatusCardDescription>
             <StatusCardAction>
               {fetcher.data?.statusId !== status.id && (
@@ -136,7 +147,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
                 </StatusCard>
               </li>
             ))}
-            {fetcher.data.notifications.length === 0 && (
+            {notifications.length === 0 && (
               <Card className="bg-muted">
                 <CardContent>반응이 없습니다.</CardContent>
               </Card>
@@ -151,6 +162,8 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col items-stretch flex-auto">
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
+          <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
+          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} />
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger>
               <SelectValue placeholder="정렬" />
@@ -200,8 +213,6 @@ export async function action({ request }: Route.ActionArgs) {
 
   return {
     statusId,
-    notifications: notifications.filter(
-      (n) => n.reaction && n.reaction.createdAt.getTime() - n.createdAt.getTime() < 1000 * 60 * 2, // 2분 이내에 작성된 반응만 필터링
-    ),
+    notifications: notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])),
   }
 }
