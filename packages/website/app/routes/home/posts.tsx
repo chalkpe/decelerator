@@ -151,12 +151,8 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col items-stretch flex-auto">
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
-          <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
-            <RefreshCw />
-            <span>새로고침</span>
-          </Button>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="정렬" />
             </SelectTrigger>
             <SelectContent>
@@ -165,6 +161,10 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
             </SelectContent>
           </Select>
         </nav>
+        <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
+          <RefreshCw />
+          <span>새로고침</span>
+        </Button>
       </header>
       <div className="flex-auto">
         <AutoSizer>
