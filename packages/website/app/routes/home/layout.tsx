@@ -1,5 +1,7 @@
-import { ChevronUp, Home, List, Repeat2, User2 } from 'lucide-react'
-import { Link, Outlet, redirect, useNavigate } from 'react-router'
+import { taskQueue } from '@decelerator/core/constants'
+import type { daemonWorkflow } from '@decelerator/core/workflows'
+import { ChevronUp, Home, List, Loader, Repeat2, User2 } from 'lucide-react'
+import { NavLink, Outlet, redirect, useNavigate } from 'react-router'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import {
   Sidebar,
@@ -17,6 +19,7 @@ import {
 } from '~/components/ui/sidebar'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
+import { temporal } from '~/lib/temporal.server'
 import pkg from '../../../../../package.json'
 import type { Route } from './+types/layout'
 
@@ -24,6 +27,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const auth = await createAuth()
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')
+
+  await temporal.workflow.start<typeof daemonWorkflow>('daemonWorkflow', {
+    taskQueue,
+    workflowId: `daemon-${session.user.domain}`,
+    workflowIdConflictPolicy: 'USE_EXISTING',
+    args: [{ domain: session.user.domain }],
+  })
 }
 
 export default function HomeLayout() {
@@ -31,9 +41,9 @@ export default function HomeLayout() {
   const { data: session } = authClient.useSession()
 
   const items = [
-    { title: '홈', url: '/home', icon: Home },
-    { title: '게시글', url: '/home/posts', icon: Repeat2 },
-    { title: '타임라인', url: '/home/timeline', icon: List },
+    { title: '홈', url: '/home', icon: Home, root: true },
+    { title: '게시글', url: '/home/posts', icon: Repeat2, root: false },
+    { title: '타임라인', url: '/home/timeline', icon: List, root: false },
   ]
 
   return (
@@ -46,12 +56,14 @@ export default function HomeLayout() {
               <SidebarMenu>
                 {items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <NavLink to={item.url}>
+                      {({ isPending }) => (
+                        <SidebarMenuButton>
+                          {!item.root && isPending ? <Loader className="animate-spin" /> : <item.icon />}
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      )}
+                    </NavLink>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

@@ -17,7 +17,6 @@ import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
-import { cn } from '~/lib/utils'
 import type { Route } from './+types/timeline'
 
 export async function loader({ request }: Route.LoaderArgs) {

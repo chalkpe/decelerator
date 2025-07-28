@@ -1,5 +1,3 @@
-import { taskQueue } from '@decelerator/core/constants'
-import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
 import { RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -19,21 +17,12 @@ import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
-import { temporal } from '~/lib/temporal.server'
-import { cn } from '~/lib/utils'
 import type { Route } from './+types/posts'
 
 export async function loader({ request }: Route.LoaderArgs) {
   const auth = await createAuth()
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')
-
-  await temporal.workflow.start<typeof daemonWorkflow>('daemonWorkflow', {
-    taskQueue,
-    workflowId: `daemon-${session.user.domain}`,
-    workflowIdConflictPolicy: 'USE_EXISTING',
-    args: [{ domain: session.user.domain }],
-  })
 
   const groups = await prisma.reblogNotification.groupBy({
     by: ['statusId'],
