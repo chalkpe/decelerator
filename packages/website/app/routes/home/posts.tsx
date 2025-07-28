@@ -60,8 +60,8 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const [sortBy, setSortBy] = useState('createdAt')
 
   const listRef = useRef<List>(null)
-  const cardRefs = useRef<Record<string, HTMLElement | null>>({})
-  const sizeRefs = useRef<Record<string, number>>({})
+  const cardsRef = useRef<Record<string, HTMLElement | null>>({})
+  const sizesRef = useRef<Record<string, number>>({})
 
   const notifications = useMemo(
     () => fetcher.data?.notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])) ?? [],
@@ -93,9 +93,9 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const Row = ({ index }: { index: number }) => {
     const { data: status, count } = posts[index]
     useEffect(() => {
-      const height = cardRefs.current[status.id]?.getBoundingClientRect().height
+      const height = cardsRef.current[status.id]?.getBoundingClientRect().height
       if (height) {
-        sizeRefs.current[index] = height
+        sizesRef.current[index] = height
         listRef.current?.resetAfterIndex(index)
       }
     }, [index, status])
@@ -105,7 +105,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
         key={status.id}
         className="pt-6 pl-6 pr-6"
         ref={(el) => {
-          cardRefs.current[status.id] = el
+          cardsRef.current[status.id] = el
         }}
       >
         <StatusCard
@@ -181,11 +181,10 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           </Select>
         </nav>
       </header>
-
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (
-            <List ref={listRef} width={width} height={height} itemCount={posts.length} itemSize={(index) => sizeRefs.current[index] ?? 100}>
+            <List ref={listRef} width={width} height={height} itemCount={posts.length} itemSize={(index) => sizesRef.current[index] ?? 100}>
               {({ index, style }) => (
                 <div key={index} style={style}>
                   <Row index={index} />

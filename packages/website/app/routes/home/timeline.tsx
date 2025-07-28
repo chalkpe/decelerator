@@ -1,13 +1,21 @@
 import { prisma } from '@decelerator/database'
-import { AvatarImage } from '@radix-ui/react-avatar'
-import { ExternalLink } from 'lucide-react'
-import { redirect } from 'react-router'
-import sanitizeHtml from 'sanitize-html'
-import { Avatar } from '~/components/ui/avatar'
+import { RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useRef } from 'react'
+import { redirect, useRevalidator } from 'react-router'
+import AutoSizer from 'react-virtualized-auto-sizer'
+import { VariableSizeList as List } from 'react-window'
+import {
+  StatusCard,
+  StatusCardAction,
+  StatusCardContent,
+  StatusCardDescription,
+  StatusCardDescriptionWithNotification,
+  StatusCardTitle,
+} from '~/components/masto/status-card'
 import { Button } from '~/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
-import { cn, formatDistance } from '~/lib/utils'
+import { cn } from '~/lib/utils'
 import type { Route } from './+types/timeline'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -29,80 +37,84 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
-  const { notifications } = loaderData
+  const revalidator = useRevalidator()
+  const notifications = useMemo(
+    () => loaderData.notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])),
+    [loaderData.notifications],
+  )
+
+  const listRef = useRef<List>(null)
+  const cardsRef = useRef<Record<string, HTMLDivElement | null>>({})
+  const sizesRef = useRef<Record<string, number>>({})
+
+  const Row = ({ index }: { index: number }) => {
+    const { data: notification, reaction, fromMutual } = notifications[index]
+
+    useEffect(() => {
+      const height = cardsRef.current[notification.id]?.getBoundingClientRect().height
+      if (height) {
+        sizesRef.current[index] = height
+        listRef.current?.resetAfterIndex(index)
+      }
+    }, [index, notification])
+
+    return (
+      <div
+        className="pl-6 pr-6 pt-6"
+        ref={(el) => {
+          cardsRef.current[notification.id] = el
+        }}
+      >
+        <StatusCard key={notification.id} status={reaction.data} className={cn(fromMutual ? '' : 'border-2 border-red-500')}>
+          <CardHeader>
+            <StatusCardTitle />
+            <StatusCardDescriptionWithNotification notification={notification} />
+            <StatusCardAction />
+          </CardHeader>
+          <StatusCardContent>
+            <StatusCard status={notification.status}>
+              <CardHeader>
+                <StatusCardTitle />
+                <StatusCardDescription />
+                <StatusCardAction />
+              </CardHeader>
+              <StatusCardContent />
+            </StatusCard>
+          </StatusCardContent>
+        </StatusCard>
+      </div>
+    )
+  }
 
   return (
-    <ul className="w-full flex flex-col items-stretch justify-center gap-4 p-6">
-      {notifications.map(({ data: notification, reaction, fromMutual }) => (
-        <li key={notification.id} className="w-full">
-          <Card className={cn(reaction ? '' : 'bg-muted', fromMutual ? '' : 'border-2 border-red-500')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Avatar>
-                  <AvatarImage src={notification.account.avatar} alt={notification.account.displayName} />
-                </Avatar>
-                {notification.account.displayName}
-              </CardTitle>
-              <CardDescription>
-                {formatDistance({ type: 'abbreviated', date: new Date(notification.createdAt), suffix: '전에' })} 부스트함
-                {reaction &&
-                  ` · ${formatDistance({ type: 'full', date: new Date(notification.createdAt), now: new Date(reaction.createdAt), suffix: '후에', immediateText: '바로' })} 작성함`}
-              </CardDescription>
-              {reaction?.data.url && (
-                <CardAction>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (!reaction.data.url) return
-                      open(reaction.data.url, '_blank', 'noopener,noreferrer')
-                    }}
-                  >
-                    <ExternalLink />
-                  </Button>
-                </CardAction>
+    <div className="flex flex-col items-stretch flex-auto">
+      <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
+        <nav className="flex items-center gap-2">
+          <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
+            <RefreshCw />
+            <span>새로고침</span>
+          </Button>
+        </nav>
+      </header>
+      <div className="flex-auto">
+        <AutoSizer>
+          {({ width, height }) => (
+            <List
+              ref={listRef}
+              width={width}
+              height={height}
+              itemCount={notifications.length}
+              itemSize={(index) => sizesRef.current[index] ?? 100}
+            >
+              {({ index, style }) => (
+                <div style={style}>
+                  <Row index={index} />
+                </div>
               )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              {reaction && (
-                <p
-                  /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(reaction.data.reblog?.content || reaction.data.content) }}
-                />
-              )}
-              <Card className={cn(reaction ? '' : 'bg-muted')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Avatar>
-                      <AvatarImage src={notification.status?.account.avatar} alt={notification.status?.account.displayName} />
-                    </Avatar>
-                    {notification.status?.account.displayName}
-                  </CardTitle>
-                  <CardDescription>
-                    {formatDistance({ type: 'abbreviated', date: new Date(notification.status?.createdAt), suffix: '전에' })} 작성함
-                  </CardDescription>
-                  {notification.status?.url && (
-                    <CardAction>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          if (!notification.status?.url) return
-                          open(notification.status.url, '_blank', 'noopener,noreferrer')
-                        }}
-                      >
-                        <ExternalLink />
-                      </Button>
-                    </CardAction>
-                  )}
-                </CardHeader>
-                <CardContent
-                  /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.status?.content ?? '') }}
-                />
-              </Card>
-            </CardContent>
-          </Card>
-        </li>
-      ))}
-    </ul>
+            </List>
+          )}
+        </AutoSizer>
+      </div>
+    </div>
   )
 }

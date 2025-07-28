@@ -1,4 +1,4 @@
-import { getDateDistance, getDateDistanceText } from '@toss/date'
+import { getDateDistance, getDateDistanceText, kstFormat } from '@toss/date'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -15,8 +15,11 @@ export interface FormatDistanceOptions {
 }
 
 export function formatDistance({ type, date, now = new Date(), suffix, immediateText = '방금' }: FormatDistanceOptions) {
+  const distance = getDateDistance(date, now)
+  if (distance.days >= 14) return kstFormat(date, 'yyyy년 M월 d일에')
+
   const result = getDateDistanceText(
-    getDateDistance(date, now),
+    distance,
     type === 'abbreviated'
       ? {
           hours: (t) => t.days === 0,

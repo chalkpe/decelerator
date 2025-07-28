@@ -1,7 +1,7 @@
 import { ExternalLink, Globe, Lock, Mail, Moon } from 'lucide-react'
 import type { ReblogNotification } from 'masto/mastodon/entities/v1/notification.js'
 import type { Status } from 'masto/mastodon/entities/v1/status.js'
-import { Children, Component, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
+import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardTitle } from '~/components/ui/card'
