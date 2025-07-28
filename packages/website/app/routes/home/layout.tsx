@@ -8,6 +8,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -37,7 +38,7 @@ export default function HomeLayout() {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" variant="inset">
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>{pkg.displayName}</SidebarGroupLabel>
@@ -79,10 +80,9 @@ export default function HomeLayout() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-
-      <main className="w-full min-h-screen">
+      <SidebarInset className="max-w-full min-h-screen overflow-x-auto">
         <Outlet />
-      </main>
+      </SidebarInset>
     </SidebarProvider>
   )
 }

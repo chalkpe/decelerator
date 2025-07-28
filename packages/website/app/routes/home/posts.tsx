@@ -1,17 +1,26 @@
 import { taskQueue } from '@decelerator/core/constants'
 import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
-import { ExternalLink, RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { redirect, useFetcher, useRevalidator } from 'react-router'
-import sanitize from 'sanitize-html'
-import { Avatar, AvatarImage } from '~/components/ui/avatar'
+import AutoSizer from 'react-virtualized-auto-sizer'
+import { VariableSizeList as List } from 'react-window'
+import {
+  StatusCard,
+  StatusCardAction,
+  StatusCardContent,
+  StatusCardDescription,
+  StatusCardDescriptionWithNotification,
+  StatusCardTitle,
+} from '~/components/masto/status-card'
 import { Button } from '~/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { createAuth } from '~/lib/auth.server'
+import { authClient } from '~/lib/auth-client'
 import { temporal } from '~/lib/temporal.server'
-import { cn, formatDistance } from '~/lib/utils'
+import { cn } from '~/lib/utils'
 import type { Route } from './+types/posts'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -43,22 +52,119 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const { statuses, groups } = loaderData
+  const { data: session } = authClient.useSession()
 
   const revalidator = useRevalidator()
   const fetcher = useFetcher<typeof action>()
 
   const [sortBy, setSortBy] = useState('createdAt')
+
+  const listRef = useRef<List>(null)
   const cardRefs = useRef<Record<string, HTMLElement | null>>({})
+  const sizeRefs = useRef<Record<string, number>>({})
+
+  const notifications = useMemo(
+    () => fetcher.data?.notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])) ?? [],
+    [fetcher.data],
+  )
+
+  const posts = useMemo(
+    () =>
+      statuses
+        .map(({ data }) => ({ data, count: groups.find((group) => group.statusId === data.id)?._count.statusId ?? 0 }))
+        .sort((a, b) => {
+          const boost = b.count - a.count
+          const createdAt = new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime()
+          return sortBy === 'boost' ? boost || createdAt : createdAt || boost
+        }),
+    [statuses, groups, sortBy],
+  )
 
   useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.statusId) {
-      cardRefs.current[fetcher.data.statusId]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (fetcher.state === 'idle') {
+      const statusId = fetcher.data?.statusId
+      if (statusId) {
+        const index = posts.findIndex(({ data }) => data.id === statusId)
+        if (index !== -1) listRef.current?.scrollToItem(index, 'start')
+      }
     }
-  }, [fetcher])
+  }, [fetcher, posts])
+
+  const Row = ({ index }: { index: number }) => {
+    const { data: status, count } = posts[index]
+    useEffect(() => {
+      const height = cardRefs.current[status.id]?.getBoundingClientRect().height
+      if (height) {
+        sizeRefs.current[index] = height
+        listRef.current?.resetAfterIndex(index)
+      }
+    }, [index, status])
+
+    return (
+      <div
+        key={status.id}
+        className="pt-6 pl-6 pr-6"
+        ref={(el) => {
+          cardRefs.current[status.id] = el
+        }}
+      >
+        <StatusCard
+          status={status}
+          domain={session?.user.domain}
+          className={fetcher.data?.statusId === status.id ? 'border-foreground border-2' : ''}
+        >
+          <CardHeader>
+            <StatusCardTitle />
+            <StatusCardDescription>
+              <span>{count}번 부스트됨</span>
+              {fetcher.data?.statusId === status.id && <span>{fetcher.data.notifications.length}개의 반응</span>}
+            </StatusCardDescription>
+            <StatusCardAction>
+              {fetcher.data?.statusId !== status.id && (
+                <fetcher.Form method="post">
+                  <input type="hidden" name="statusId" value={status.id} />
+                  <Button type="submit" disabled={fetcher.state !== 'idle'}>
+                    반응 보기
+                  </Button>
+                </fetcher.Form>
+              )}
+            </StatusCardAction>
+          </CardHeader>
+          <StatusCardContent />
+        </StatusCard>
+
+        {fetcher.data?.statusId === status.id && (
+          <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
+            {notifications.map(({ data: notification, reaction, fromMutual }) => (
+              <li key={notification.id}>
+                <StatusCard
+                  status={reaction.data}
+                  domain={session?.user.domain}
+                  className={cn(fromMutual ? '' : 'border-2 border-red-500')}
+                >
+                  <CardHeader>
+                    <StatusCardTitle />
+                    <StatusCardDescriptionWithNotification notification={notification} />
+                    <StatusCardAction />
+                  </CardHeader>
+                  <StatusCardContent />
+                </StatusCard>
+              </li>
+            ))}
+            {fetcher.data.notifications.length === 0 && (
+              <Card className="bg-muted">
+                <CardContent>반응이 없습니다.</CardContent>
+              </Card>
+            )}
+          </ul>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col items-stretch">
-      <header className="flex items-center justify-between sticky top-0 bg-background z-20 p-6 shadow">
+    <div className="flex flex-col items-stretch flex-auto">
+      <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
           <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
             <RefreshCw />
@@ -76,115 +182,19 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
         </nav>
       </header>
 
-      <ul className="w-full flex flex-col items-stretch justify-center gap-6 p-6">
-        {statuses
-          .map(({ data }) => ({ data, count: groups.find((group) => group.statusId === data.id)?._count.statusId ?? 0 }))
-          .sort((a, b) => {
-            const boost = b.count - a.count
-            const createdAt = new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime()
-            return sortBy === 'boost' ? boost || createdAt : createdAt || boost
-          })
-          .map(({ data: status, count }) => (
-            <li
-              key={status.id}
-              ref={(el) => {
-                cardRefs.current[status.id] = el
-              }}
-              className="scroll-mt-28"
-            >
-              <Card className={fetcher.data?.statusId === status.id ? 'sticky top-27 z-10 border-foreground border-2' : ''}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Avatar>
-                      <AvatarImage src={status.account.avatar} alt={status.account.displayName} />
-                    </Avatar>
-                    {status.account.displayName}
-                  </CardTitle>
-
-                  <CardDescription>
-                    {formatDistance({ type: 'abbreviated', date: new Date(status.createdAt), suffix: '전에' })} 작성함 · {count}번 부스트됨
-                    {fetcher.data?.statusId === status.id && ` · ${fetcher.data.notifications.length}개의 반응`}
-                  </CardDescription>
-                  <CardAction className="flex items-center gap-2">
-                    {status.url && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          if (!status.url) return
-                          open(status.url, '_blank', 'noopener,noreferrer')
-                        }}
-                      >
-                        <ExternalLink />
-                      </Button>
-                    )}
-                    {fetcher.data?.statusId !== status.id && (
-                      <fetcher.Form method="post">
-                        <input type="hidden" name="statusId" value={status.id} />
-                        <Button type="submit" disabled={fetcher.state !== 'idle'}>
-                          반응 보기
-                        </Button>
-                      </fetcher.Form>
-                    )}
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  {/** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
-                  <p dangerouslySetInnerHTML={{ __html: sanitize(status.content) }} />
-                </CardContent>
-              </Card>
-
-              {fetcher.data?.statusId === status.id && (
-                <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
-                  {fetcher.data.notifications.map(({ data: notification, reaction, fromMutual }) => (
-                    <li key={notification.id}>
-                      <Card className={cn(fromMutual ? '' : 'border-2 border-red-500')}>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Avatar>
-                              <AvatarImage src={notification.account.avatar} alt={notification.account.displayName} />
-                            </Avatar>
-                            {notification.account.displayName}
-                          </CardTitle>
-                          <CardDescription>
-                            {formatDistance({ type: 'abbreviated', date: new Date(notification.createdAt), suffix: '전에' })} 부스트함
-                            {reaction &&
-                              ` · ${formatDistance({ type: 'full', date: new Date(notification.createdAt), now: new Date(reaction.createdAt), suffix: '후에', immediateText: '바로' })} 작성함`}
-                          </CardDescription>
-                          {reaction?.data.url && (
-                            <CardAction>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  if (!reaction.data.url) return
-                                  open(reaction.data.url, '_blank', 'noopener,noreferrer')
-                                }}
-                              >
-                                <ExternalLink />
-                              </Button>
-                            </CardAction>
-                          )}
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-6">
-                          {reaction && (
-                            <p
-                              /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
-                              dangerouslySetInnerHTML={{ __html: sanitize(reaction.data.reblog?.content || reaction.data.content) }}
-                            />
-                          )}
-                        </CardContent>
-                      </Card>
-                    </li>
-                  ))}
-                  {fetcher.data.notifications.length === 0 && (
-                    <Card className="bg-muted">
-                      <CardContent>반응이 없습니다.</CardContent>
-                    </Card>
-                  )}
-                </ul>
+      <div className="flex-auto">
+        <AutoSizer>
+          {({ width, height }) => (
+            <List ref={listRef} width={width} height={height} itemCount={posts.length} itemSize={(index) => sizeRefs.current[index] ?? 100}>
+              {({ index, style }) => (
+                <div key={index} style={style}>
+                  <Row index={index} />
+                </div>
               )}
-            </li>
-          ))}
-      </ul>
+            </List>
+          )}
+        </AutoSizer>
+      </div>
     </div>
   )
 }
