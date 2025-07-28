@@ -1,7 +1,7 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Globe, Lock, Mail, Moon } from 'lucide-react'
 import type { ReblogNotification } from 'masto/mastodon/entities/v1/notification.js'
 import type { Status } from 'masto/mastodon/entities/v1/status.js'
-import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
+import { Children, Component, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardTitle } from '~/components/ui/card'
@@ -39,10 +39,43 @@ const StatusCardTitle: FC<ComponentProps<'div'>> = ({ children, className, ...pr
 
 const divider = (key: Key) => <Fragment key={key}>&nbsp;&middot;&nbsp;</Fragment>
 
+const VisibilityIcon: FC<{ visibility: Status['visibility'] }> = ({ visibility }) => {
+  const className = 'size-4 inline align-sub mr-0.5'
+  const icons = {
+    public: (
+      <>
+        <Globe className={className} />
+        공개
+      </>
+    ),
+    unlisted: (
+      <>
+        <Moon className={className} />
+        조용한 공개
+      </>
+    ),
+    private: (
+      <>
+        <Lock className={className} />
+        팔로워
+      </>
+    ),
+    direct: (
+      <>
+        <Mail className={className} />
+        개인 멘션
+      </>
+    ),
+  }
+  return icons[visibility]
+}
+
 const StatusCardDescription: FC<ComponentProps<'div'>> = ({ children, ...props }) => {
   const { status } = useStatusCard()
   return (
     <CardDescription {...props}>
+      <VisibilityIcon visibility={status.visibility} />
+      {divider('divider-0')}
       <span suppressHydrationWarning>
         {formatDistance({ type: 'abbreviated', date: new Date(status.createdAt), suffix: '전에' })} 작성함
       </span>
@@ -61,6 +94,8 @@ const StatusCardDescriptionWithNotification: FC<ComponentProps<'div'> & { notifi
   const now = new Date(status.createdAt)
   return (
     <CardDescription {...props}>
+      <VisibilityIcon visibility={status.visibility} />
+      {divider('divider-0')}
       <span suppressHydrationWarning>{formatDistance({ type: 'abbreviated', date, suffix: '전에' })} 부스트함</span>
       {divider('divider-1')}
       <span>{formatDistance({ type: 'full', date, now, suffix: '후에', immediateText: '바로' })} 작성함</span>
