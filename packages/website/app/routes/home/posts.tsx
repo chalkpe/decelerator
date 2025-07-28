@@ -135,13 +135,9 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
 
         {fetcher.data?.statusId === status.id && (
           <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
-            {notifications.map(({ data: notification, reaction, fromMutual }) => (
+            {notifications.map(({ data: notification, reaction }) => (
               <li key={notification.id}>
-                <StatusCard
-                  status={reaction.data}
-                  domain={session?.user.domain}
-                  className={cn(fromMutual ? '' : 'border-2 border-red-500')}
-                >
+                <StatusCard status={reaction.data} domain={session?.user.domain}>
                   <CardHeader>
                     <StatusCardTitle />
                     <StatusCardDescriptionWithNotification notification={notification} />

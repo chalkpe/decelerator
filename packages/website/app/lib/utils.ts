@@ -12,11 +12,19 @@ export interface FormatDistanceOptions {
   now?: Date
   suffix: string
   immediateText?: string
+  absoluteTooOld?: boolean
 }
 
-export function formatDistance({ type, date, now = new Date(), suffix, immediateText = '방금' }: FormatDistanceOptions) {
+export function formatDistance({
+  type,
+  date,
+  now = new Date(),
+  suffix,
+  immediateText = '방금',
+  absoluteTooOld = false,
+}: FormatDistanceOptions) {
   const distance = getDateDistance(date, now)
-  if (distance.days >= 14) return kstFormat(date, 'yyyy년 M월 d일에')
+  if (absoluteTooOld && distance.days >= 14) return kstFormat(date, 'yyyy년 M월 d일에')
 
   const result = getDateDistanceText(
     distance,

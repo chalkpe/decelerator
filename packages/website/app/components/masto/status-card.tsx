@@ -77,7 +77,7 @@ const StatusCardDescription: FC<ComponentProps<'div'>> = ({ children, ...props }
       <VisibilityIcon visibility={status.visibility} />
       {divider('divider-0')}
       <span suppressHydrationWarning>
-        {formatDistance({ type: 'abbreviated', date: new Date(status.createdAt), suffix: '전에' })} 작성함
+        {formatDistance({ type: 'abbreviated', date: new Date(status.createdAt), suffix: '전에', absoluteTooOld: true })} 작성함
       </span>
       {Children.toArray(children).flatMap((child, index) => [divider(index), child])}
     </CardDescription>
@@ -96,7 +96,7 @@ const StatusCardDescriptionWithNotification: FC<ComponentProps<'div'> & { notifi
     <CardDescription {...props}>
       <VisibilityIcon visibility={status.visibility} />
       {divider('divider-0')}
-      <span suppressHydrationWarning>{formatDistance({ type: 'abbreviated', date, suffix: '전에' })} 부스트함</span>
+      <span suppressHydrationWarning>{formatDistance({ type: 'abbreviated', date, suffix: '전에', absoluteTooOld: true })} 부스트함</span>
       {divider('divider-1')}
       <span>{formatDistance({ type: 'full', date, now, suffix: '후에', immediateText: '바로' })} 작성함</span>
       {Children.toArray(children).flatMap((child, index) => [divider(index), child])}
