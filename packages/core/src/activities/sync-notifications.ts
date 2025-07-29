@@ -20,14 +20,6 @@ export async function syncNotificationsActivity(params: SyncNotificationsParams)
   const notifications = await masto.v1.notifications.list({ types: ['reblog'], minId, maxId })
   const reblogNotifications = notifications.flatMap((n) => (n.type === 'reblog' ? [n] : []))
 
-  log.info(
-    'hllll',
-    reblogNotifications.map((notification) => ({
-      notificationId: notification.id,
-      statusId: notification.status.id,
-    })),
-  )
-
   const { count } = await prisma.reblogNotification.createMany({
     skipDuplicates: true,
     data: reblogNotifications.map((notification) => ({
