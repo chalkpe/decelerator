@@ -29,7 +29,6 @@ model ReblogNotification {
   accountId String
 
   user      User           @relation(fields: [domain, userId], references: [domain, mastodonId])
-  status    StatusIndex?   @relation(fields: [domain, statusId], references: [domain, statusId])
   reactions UserReaction[]
 
   /// [ReblogNotificationData]
@@ -68,9 +67,8 @@ model StatusIndex {
   /// [StatusIndexData]
   data Json
 
-  notifications ReblogNotification[]
-  referenced    UserReaction[]       @relation("OriginOf")
-  referencing   UserReaction[]       @relation("ReactionOf")
+  referenced  UserReaction[] @relation("OriginOf")
+  referencing UserReaction[] @relation("ReactionOf")
 
   @@unique([domain, statusId])
   @@map("status_index")

@@ -20,7 +20,7 @@ export default function HomeIndex() {
   const { current } = useFlush()
 
   return (
-    <div className="flex flex-col items-stretch flex-auto">
+    <div className="flex flex-col items-stretch flex-auto" suppressHydrationWarning>
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
           <span className="text-2xl font-bold">{pkg.displayName}</span>

@@ -1,10 +1,10 @@
 import { prisma } from '@decelerator/database'
-import { RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { redirect, useFetcher, useRevalidator } from 'react-router'
+import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
+import { FlushButton } from '~/components/masto/flush-button'
 import { type MutualMode, MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
@@ -15,7 +15,6 @@ import {
   StatusCardTitle,
 } from '~/components/masto/status-card'
 import { TimeoutSelect } from '~/components/masto/timeout-select'
-import { Button } from '~/components/ui/button'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
@@ -52,7 +51,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
   const { data: session } = authClient.useSession()
-  const revalidator = useRevalidator()
 
   const fetcher = useFetcher<typeof loader>()
   const [userReactions, setUserReactions] = useState<typeof loaderData.data>(loaderData.data)
@@ -137,10 +135,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} />
         </nav>
-        <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
-          <RefreshCw />
-          <span>새로고침</span>
-        </Button>
+        <FlushButton />
       </header>
       <div className="flex-auto">
         <AutoSizer>

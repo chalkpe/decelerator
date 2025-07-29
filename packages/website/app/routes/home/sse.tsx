@@ -15,7 +15,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { domain, mastodonId: userId } = session.user
 
   return eventStream(request.signal, (send) => {
-    console.log('Starting SSE interval for user', userId, 'on domain', domain)
     const interval = setIntervalAsync(
       async (domain: string, userId: string) => {
         try {
@@ -32,7 +31,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       userId,
     )
     return () => {
-      console.log('SSE connection closed, clearing interval', interval)
       clearIntervalAsync(interval)
     }
   })

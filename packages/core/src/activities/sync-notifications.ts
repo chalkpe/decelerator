@@ -1,5 +1,5 @@
 import { prisma } from '@decelerator/database'
-import { sleep } from '@temporalio/activity'
+import { log, sleep } from '@temporalio/activity'
 import { createRestAPIClient } from 'masto'
 
 export interface SyncNotificationsParams {
@@ -19,6 +19,14 @@ export async function syncNotificationsActivity(params: SyncNotificationsParams)
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
   const notifications = await masto.v1.notifications.list({ types: ['reblog'], minId, maxId })
   const reblogNotifications = notifications.flatMap((n) => (n.type === 'reblog' ? [n] : []))
+
+  log.info(
+    'hllll',
+    reblogNotifications.map((notification) => ({
+      notificationId: notification.id,
+      statusId: notification.status.id,
+    })),
+  )
 
   const { count } = await prisma.reblogNotification.createMany({
     skipDuplicates: true,
