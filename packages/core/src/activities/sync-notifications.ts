@@ -18,30 +18,19 @@ export async function syncNotificationsActivity(params: SyncNotificationsParams)
 
   const masto = createRestAPIClient({ url: `https://${domain}`, accessToken })
   const notifications = await masto.v1.notifications.list({ types: ['reblog'], minId, maxId })
-  const relationships = await masto.v1.accounts.relationships.fetch({ id: notifications.map((n) => n.account.id) })
+  const reblogNotifications = notifications.flatMap((n) => (n.type === 'reblog' ? [n] : []))
 
   const { count } = await prisma.reblogNotification.createMany({
     skipDuplicates: true,
-    data: notifications.flatMap((notification) => {
-      const relationship = relationships.find((r) => r.id === notification.account.id)
-      const fromMutual = relationship ? relationship.following && relationship.followedBy : false
-
-      return notification.type === 'reblog'
-        ? [
-            {
-              domain,
-              notificationId: notification.id,
-              createdAt: new Date(notification.createdAt),
-              userId: notification.status.account.id,
-              statusId: notification.status.id,
-              accountId: notification.account.id,
-              fromMutual,
-              reactionId: null,
-              data: notification,
-            },
-          ]
-        : []
-    }),
+    data: reblogNotifications.map((notification) => ({
+      domain,
+      notificationId: notification.id,
+      createdAt: new Date(notification.createdAt),
+      userId: notification.status.account.id,
+      statusId: notification.status.id,
+      accountId: notification.account.id,
+      data: notification,
+    })),
   })
 
   await sleep('3 seconds')

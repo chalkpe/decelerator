@@ -10,7 +10,7 @@ const { findAccountActivity: findAccount } = proxyActivities<typeof findAccountA
 })
 const { syncNotificationsActivity: syncNotifications } = proxyActivities<typeof syncNotificationsActivities>({
   heartbeatTimeout: '30 seconds',
-  startToCloseTimeout: '30 minutes',
+  startToCloseTimeout: '3 minutes',
   retry: {
     initialInterval: '5 minutes',
     nonRetryableErrorTypes: ['MastoHttpError', 'PrismaClientKnownRequestError'],
@@ -62,7 +62,7 @@ export async function fetchNotificationsWorkflow(params: FetchNotificationsParam
   // 저장된 알림이 없었던 경우 동기화된 모든 알림을 목록에 추가
   if (!latest && !oldest) {
     for (const { notificationId } of await findNotifications({
-      where: { domain, userId, reactionId: null },
+      where: { domain, userId, reactions: { none: {} } },
       select: { notificationId: true },
     })) {
       notificationIds.add(notificationId)
@@ -71,7 +71,7 @@ export async function fetchNotificationsWorkflow(params: FetchNotificationsParam
     // 동기화된 새 알림들을 찾아서 목록에 추가
     if (latest) {
       for (const { notificationId } of await findNotifications({
-        where: { domain, userId, reactionId: null, createdAt: { gt: latest.createdAt } },
+        where: { domain, userId, reactions: { none: {} }, createdAt: { gt: latest.createdAt } },
         select: { notificationId: true },
       })) {
         notificationIds.add(notificationId)
@@ -79,7 +79,7 @@ export async function fetchNotificationsWorkflow(params: FetchNotificationsParam
     }
     if (oldest) {
       for (const { notificationId } of await findNotifications({
-        where: { domain, userId, reactionId: null, createdAt: { lt: oldest.createdAt } },
+        where: { domain, userId, reactions: { none: {} }, createdAt: { lt: oldest.createdAt } },
         select: { notificationId: true },
       })) {
         notificationIds.add(notificationId)

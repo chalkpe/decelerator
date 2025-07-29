@@ -1,9 +1,10 @@
 import { ApplicationFailure, proxyActivities } from '@temporalio/workflow'
+import type * as createUserReactionActivities from '../activities/create-user-reaction.js'
+import type * as fetchRelationshipsActivities from '../activities/fetch-relationships.js'
 import type * as findAccountActivities from '../activities/find-account.js'
 import type * as findIndexActivities from '../activities/find-index.js'
 import type * as findNotificationActivities from '../activities/find-notification.js'
 import type * as syncIndexActivities from '../activities/sync-index.js'
-import type * as updateNotificationActivities from '../activities/update-notification.js'
 
 const { findAccountActivity: findAccount } = proxyActivities<typeof findAccountActivities>({
   startToCloseTimeout: '15 seconds',
@@ -15,17 +16,21 @@ const { findIndexActivity: findIndex } = proxyActivities<typeof findIndexActivit
 })
 const { syncIndexActivity: syncIndex } = proxyActivities<typeof syncIndexActivities>({
   heartbeatTimeout: '30 seconds',
-  startToCloseTimeout: '30 minutes',
+  startToCloseTimeout: '3 minutes',
   retry: {
     initialInterval: '5 minutes',
     nonRetryableErrorTypes: ['MastoHttpError', 'PrismaClientKnownRequestError'],
   },
 })
+const { fetchRelationshipsActivity: fetchRelationships } = proxyActivities<typeof fetchRelationshipsActivities>({
+  startToCloseTimeout: '1 minutes',
+  retry: { nonRetryableErrorTypes: ['MastoHttpError'] },
+})
 const { findNotificationActivity: findNotification } = proxyActivities<typeof findNotificationActivities>({
   startToCloseTimeout: '15 seconds',
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
-const { updateNotificationActivity: updateNotification } = proxyActivities<typeof updateNotificationActivities>({
+const { createUserReactionActivity: createUserReaction } = proxyActivities<typeof createUserReactionActivities>({
   startToCloseTimeout: '15 seconds',
   retry: { nonRetryableErrorTypes: ['PrismaClientKnownRequestError'] },
 })
@@ -59,6 +64,19 @@ export async function fetchReactionWorkflow({ domain, notificationId }: FetchRea
   const reaction = await findIndex({ where: { domain, accountId, createdAt: { gt }, reblogId: null }, orderBy: { createdAt: 'asc' } })
   if (!reaction) throw ApplicationFailure.nonRetryable('Reaction not found', 'ReactionNotFound')
 
+  const { relationships } = await fetchRelationships({ domain, accessToken: account.accessToken, accountIds: [reaction.accountId] })
+  const fromMutual = relationships[reaction.accountId]
+
   // 알림에 반응 ID 업데이트
-  await updateNotification({ where: { domain_notificationId: { domain, notificationId } }, data: { reactionId: reaction.statusId } })
+  await createUserReaction({
+    data: {
+      domain,
+      statusId: notification.statusId,
+      reactionId: reaction.statusId,
+      notificationId: notification.notificationId,
+      createdAt: notification.createdAt,
+      reactedAt: reaction.createdAt,
+      fromMutual,
+    },
+  })
 }

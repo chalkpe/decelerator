@@ -22,17 +22,15 @@ model App {
 model ReblogNotification {
   domain         String
   notificationId String
-  createdAt      DateTime
 
-  userId String
-  user   User   @relation(fields: [domain, userId], references: [domain, mastodonId])
+  createdAt DateTime
+  userId    String
+  statusId  String
+  accountId String
 
-  statusId   String
-  accountId  String
-  fromMutual Boolean
-
-  reactionId String?
-  reaction   StatusIndex? @relation(fields: [domain, reactionId], references: [domain, statusId])
+  user      User           @relation(fields: [domain, userId], references: [domain, mastodonId])
+  status    StatusIndex?   @relation(fields: [domain, statusId], references: [domain, statusId])
+  reactions UserReaction[]
 
   /// [ReblogNotificationData]
   data Json
@@ -41,11 +39,29 @@ model ReblogNotification {
   @@map("reblog_notification")
 }
 
-model StatusIndex {
-  domain    String
-  statusId  String
-  createdAt DateTime
+model UserReaction {
+  domain         String
+  statusId       String
+  reactionId     String
+  notificationId String
 
+  createdAt  DateTime
+  reactedAt  DateTime
+  fromMutual Boolean
+
+  status       StatusIndex        @relation("OriginOf", fields: [domain, statusId], references: [domain, statusId])
+  reaction     StatusIndex        @relation("ReactionOf", fields: [domain, reactionId], references: [domain, statusId])
+  notification ReblogNotification @relation(fields: [domain, notificationId], references: [domain, notificationId])
+
+  @@unique([domain, statusId, reactionId])
+  @@map("user_reaction")
+}
+
+model StatusIndex {
+  domain   String
+  statusId String
+
+  createdAt DateTime
   accountId String
   reblogId  String?
 
@@ -53,6 +69,8 @@ model StatusIndex {
   data Json
 
   notifications ReblogNotification[]
+  referenced    UserReaction[]       @relation("OriginOf")
+  referencing   UserReaction[]       @relation("ReactionOf")
 
   @@unique([domain, statusId])
   @@map("status_index")

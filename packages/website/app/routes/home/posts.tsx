@@ -1,7 +1,7 @@
 import { prisma } from '@decelerator/database'
 import { RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { redirect, useFetcher, useRevalidator } from 'react-router'
+import { redirect, useRevalidator } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import { type MutualMode, MutualSelect } from '~/components/masto/mutual-select'
@@ -10,15 +10,16 @@ import {
   StatusCardAction,
   StatusCardContent,
   StatusCardDescription,
-  StatusCardDescriptionWithNotification,
+  StatusCardDescriptionWithTimeout,
   StatusCardTitle,
 } from '~/components/masto/status-card'
 import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { useFlush } from '~/hooks/use-flush'
 import { createAuth } from '~/lib/auth.server'
-import { authClient } from '~/lib/auth-client'
+import { cn } from '~/lib/utils'
 import type { Route } from './+types/posts'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -26,27 +27,25 @@ export async function loader({ request }: Route.LoaderArgs) {
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')
 
-  const groups = await prisma.reblogNotification.groupBy({
-    by: ['statusId'],
-    where: { userId: session.user.mastodonId, domain: session.user.domain, reactionId: { not: null } },
-    _count: { statusId: true },
-    orderBy: { _count: { statusId: 'desc' } },
-  })
-
+  const { domain, mastodonId: userId } = session.user
   const statuses = await prisma.statusIndex.findMany({
-    where: { statusId: { in: groups.map((group) => group.statusId) } },
-    select: { data: true },
+    where: { domain, accountId: userId, referenced: { some: {} } },
+    orderBy: { createdAt: 'desc' },
+    take: 40,
+    include: {
+      notifications: true,
+      referenced: { include: { reaction: true } },
+    },
   })
 
-  return { statuses, groups }
+  return { statuses }
 }
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
-  const { statuses, groups } = loaderData
-  const { data: session } = authClient.useSession()
+  const { statuses } = loaderData
 
   const revalidator = useRevalidator()
-  const fetcher = useFetcher<typeof action>()
+  const { prev, current, flush } = useFlush()
 
   const [sortBy, setSortBy] = useState('createdAt')
   const [timeout, setTimeout] = useState(1000 * 60 * 2)
@@ -56,44 +55,37 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const cardsRef = useRef<Record<string, HTMLElement | null>>({})
   const sizesRef = useRef<Record<string, number>>({})
 
-  const notifications = useMemo(
-    () =>
-      fetcher.data?.notifications
-        .flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : []))
-        .filter(
-          ({ reaction, createdAt, fromMutual }) =>
-            reaction.createdAt.getTime() - createdAt.getTime() <= timeout &&
-            (mutualMode === 'all' || (mutualMode === 'foreigner' && !fromMutual) || (mutualMode === 'mutual' && fromMutual)),
-        ) ?? [],
-    [fetcher.data, mutualMode, timeout],
-  )
-
   const posts = useMemo(
     () =>
-      statuses
-        .map(({ data }) => ({ data, count: groups.find((group) => group.statusId === data.id)?._count.statusId ?? 0 }))
-        .sort((a, b) => {
-          const boost = b.count - a.count
-          const createdAt = new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime()
-          return sortBy === 'boost' ? boost || createdAt : createdAt || boost
-        }),
-    [statuses, groups, sortBy],
+      statuses.sort((a, b) => {
+        const boost = b.referenced.length - a.referenced.length
+        const createdAt = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        return sortBy === 'boost' ? boost || createdAt : createdAt || boost
+      }),
+    [statuses, sortBy],
   )
 
-  useEffect(() => {
-    if (fetcher.state === 'idle') {
-      const statusId = fetcher.data?.statusId
-      if (statusId) {
-        const index = posts.findIndex(({ data }) => data.id === statusId)
-        if (index !== -1) listRef.current?.scrollToItem(index, 'start')
-      }
-    }
-  }, [fetcher, posts])
+  // useEffect(() => {
+  //   if (fetcher.state === 'idle') {
+  //     const statusId = fetcher.data?.statusId
+  //     if (statusId) {
+  //       const index = posts.findIndex(({ data }) => data.id === statusId)
+  //       if (index !== -1) listRef.current?.scrollToItem(index, 'start')
+  //     }
+  //   }
+  // }, [fetcher, posts])
 
   const Row = ({ index }: { index: number }) => {
-    const { data: status, count } = posts[index]
+    const status = posts[index]
+
+    const referenced = status.referenced.filter(
+      ({ createdAt, reactedAt, fromMutual }) =>
+        reactedAt.getTime() - createdAt.getTime() <= timeout &&
+        (mutualMode === 'all' || (mutualMode === 'foreigner' && !fromMutual) || (mutualMode === 'mutual' && fromMutual)),
+    )
+
     useEffect(() => {
-      const height = cardsRef.current[status.id]?.getBoundingClientRect().height
+      const height = cardsRef.current[status.statusId]?.getBoundingClientRect().height
       if (height) {
         sizesRef.current[index] = height
         listRef.current?.resetAfterIndex(index)
@@ -102,58 +94,43 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
 
     return (
       <div
-        key={status.id}
+        key={status.statusId}
         className="pt-6 pl-6 pr-6"
         ref={(el) => {
-          cardsRef.current[status.id] = el
+          cardsRef.current[status.statusId] = el
         }}
       >
-        <StatusCard
-          status={status}
-          domain={session?.user.domain}
-          className={fetcher.data?.statusId === status.id ? 'border-foreground border-2' : ''}
-        >
+        <StatusCard status={status.data} domain={status.domain}>
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescription>
-              <span>{count}번 부스트됨</span>
-              {fetcher.data?.statusId === status.id && <span>{notifications.length}개의 반응</span>}
+              <span>{status.notifications.length}번 부스트됨</span>
+              <span>{status.referenced.length}개의 반응</span>
             </StatusCardDescription>
-            <StatusCardAction>
-              {fetcher.data?.statusId !== status.id && (
-                <fetcher.Form method="post">
-                  <input type="hidden" name="statusId" value={status.id} />
-                  <Button type="submit" disabled={fetcher.state !== 'idle'}>
-                    반응 보기
-                  </Button>
-                </fetcher.Form>
-              )}
-            </StatusCardAction>
+            <StatusCardAction />
           </CardHeader>
           <StatusCardContent />
         </StatusCard>
 
-        {fetcher.data?.statusId === status.id && (
-          <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
-            {notifications.map(({ data: notification, reaction }) => (
-              <li key={notification.id}>
-                <StatusCard status={reaction.data} domain={session?.user.domain}>
-                  <CardHeader>
-                    <StatusCardTitle />
-                    <StatusCardDescriptionWithNotification notification={notification} />
-                    <StatusCardAction />
-                  </CardHeader>
-                  <StatusCardContent />
-                </StatusCard>
-              </li>
-            ))}
-            {notifications.length === 0 && (
-              <Card className="bg-muted">
-                <CardContent>반응이 없습니다.</CardContent>
-              </Card>
-            )}
-          </ul>
-        )}
+        <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
+          {referenced.map(({ reaction, createdAt, reactedAt }) => (
+            <li key={reaction.statusId}>
+              <StatusCard status={reaction.data} domain={status.domain}>
+                <CardHeader>
+                  <StatusCardTitle />
+                  <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />
+                  <StatusCardAction />
+                </CardHeader>
+                <StatusCardContent />
+              </StatusCard>
+            </li>
+          ))}
+          {referenced.length === 0 && (
+            <Card className="bg-muted">
+              <CardContent>반응이 없습니다.</CardContent>
+            </Card>
+          )}
+        </ul>
       </div>
     )
   }
@@ -174,9 +151,16 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
             </SelectContent>
           </Select>
         </nav>
-        <Button onClick={() => revalidator.revalidate()} disabled={revalidator.state !== 'idle'}>
+        <Button
+          onClick={() => {
+            flush()
+            revalidator.revalidate()
+          }}
+          disabled={revalidator.state !== 'idle'}
+          className={cn(current.length > 0 && 'animate-pulse')}
+        >
           <RefreshCw />
-          <span>새로고침</span>
+          {current.length > 0 ? <span>새로고침 (+{current.length})</span> : <span>새로고침</span>}
         </Button>
       </header>
       <div className="flex-auto">
@@ -194,25 +178,4 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
       </div>
     </div>
   )
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  const auth = await createAuth()
-  const session = await auth.api.getSession(request)
-  if (!session) return null
-
-  const formData = await request.formData()
-  const statusId = formData.get('statusId')?.toString()
-  if (typeof statusId !== 'string') return null
-
-  const notifications = await prisma.reblogNotification.findMany({
-    where: { userId: session.user.mastodonId, domain: session.user.domain, statusId, reactionId: { not: null } },
-    orderBy: { createdAt: 'asc' },
-    include: { reaction: true },
-  })
-
-  return {
-    statusId,
-    notifications: notifications.flatMap(({ reaction, ...data }) => (reaction ? [{ ...data, reaction }] : [])),
-  }
 }

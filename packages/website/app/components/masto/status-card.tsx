@@ -1,5 +1,4 @@
 import { ExternalLink, Globe, Lock, Mail, Moon } from 'lucide-react'
-import type { ReblogNotification } from 'masto/mastodon/entities/v1/notification.js'
 import type { Status } from 'masto/mastodon/entities/v1/status.js'
 import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
@@ -84,14 +83,9 @@ const StatusCardDescription: FC<ComponentProps<'div'>> = ({ children, ...props }
   )
 }
 
-const StatusCardDescriptionWithNotification: FC<ComponentProps<'div'> & { notification: ReblogNotification }> = ({
-  notification,
-  children,
-  ...props
-}) => {
+const StatusCardDescriptionWithTimeout: FC<ComponentProps<'div'> & { timeout: [Date, Date] }> = ({ timeout, children, ...props }) => {
   const { status } = useStatusCard()
-  const date = new Date(notification.createdAt)
-  const now = new Date(status.createdAt)
+  const [date, now] = [new Date(timeout[0]), new Date(timeout[1])]
   return (
     <CardDescription {...props}>
       <VisibilityIcon visibility={status.visibility} />
@@ -164,4 +158,4 @@ const StatusCard: FC<ComponentProps<'div'> & StatusCardContextValue> = ({ status
   )
 }
 
-export { StatusCard, StatusCardTitle, StatusCardDescription, StatusCardDescriptionWithNotification, StatusCardAction, StatusCardContent }
+export { StatusCard, StatusCardTitle, StatusCardDescription, StatusCardDescriptionWithTimeout, StatusCardAction, StatusCardContent }
