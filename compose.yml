@@ -39,7 +39,7 @@ services:
         condition: service_healthy
     image: temporalio/ui:latest
     ports:
-      - 127.0.0.1:8233:8233
+      - 8233:8233
     networks:
       - internal_network
     healthcheck:
@@ -57,7 +57,7 @@ services:
       context: .
       dockerfile: packages/database/Dockerfile
     ports:
-      - 127.0.0.1:5555:5555
+      - 5555:5555
     networks:
       - internal_network
     healthcheck:
