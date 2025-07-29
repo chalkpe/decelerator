@@ -83,7 +83,7 @@ services:
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
     deploy:
       mode: replicated
-      replicas: 4
+      replicas: 16
 
   website:
     depends_on:
