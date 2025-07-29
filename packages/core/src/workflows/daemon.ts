@@ -52,7 +52,7 @@ export async function daemonWorkflow({ domain, queue: _queue }: DaemonWorkflowIn
     // 모든 계정의 기존 알림 중 아직 미확정 상태의 알림들을 찾아서 큐에 추가
     for (const { userId, notificationId } of await findNotifications({
       where: { domain, reactions: { none: {} }, createdAt: { gt: new Date(Date.now() - ms(maxReactionDelay)) } },
-      select: { notificationId: true },
+      select: { userId: true, notificationId: true },
     })) {
       queue.push({ userId, notificationId })
     }

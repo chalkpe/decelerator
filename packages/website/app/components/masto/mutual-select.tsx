@@ -1,7 +1,6 @@
 import { Star, UserRoundSearch, Users } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-
-export type MutualMode = 'all' | 'mutual' | 'foreigner'
+import type { MutualMode } from '~/stores/filter'
 
 const MutualSelect = ({ mutualMode, setMutualMode }: { mutualMode: MutualMode; setMutualMode: (value: MutualMode) => void }) => {
   const options = [

@@ -1,12 +1,12 @@
 import { prisma } from '@decelerator/database'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useAtom } from 'jotai/react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
-
 import { FlushButton } from '~/components/masto/flush-button'
-import { type MutualMode, MutualSelect } from '~/components/masto/mutual-select'
+import { MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
   StatusCardAction,
@@ -19,6 +19,7 @@ import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { createAuth } from '~/lib/auth.server'
+import { mutualModeAtom, type TimelineSortBy, timelineSortByAtom, timeoutAtom } from '~/stores/filter'
 import type { Route } from './+types/posts'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -60,9 +61,9 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     return fetcher.load(`/home/posts?timestamp=${lastStatus.createdAt.toISOString()}`)
   }, [fetcher, statuses])
 
-  const [sortBy, setSortBy] = useState('createdAt')
-  const [timeout, setTimeout] = useState(1000 * 60 * 2)
-  const [mutualMode, setMutualMode] = useState<MutualMode>('mutual')
+  const [sortBy, setSortBy] = useAtom(timelineSortByAtom)
+  const [timeout, setTimeout] = useAtom(timeoutAtom)
+  const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
 
   const listRef = useRef<List>(null)
   const cardsRef = useRef<Record<string, HTMLElement | null>>({})
@@ -140,7 +141,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
         <nav className="flex items-center gap-2">
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} />
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={sortBy} onValueChange={(s) => setSortBy(s as TimelineSortBy)}>
             <SelectTrigger>
               <SelectValue placeholder="정렬" />
             </SelectTrigger>

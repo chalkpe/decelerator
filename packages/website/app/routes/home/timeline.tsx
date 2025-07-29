@@ -1,11 +1,12 @@
 import { prisma } from '@decelerator/database'
+import { useAtom } from 'jotai/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
 import { FlushButton } from '~/components/masto/flush-button'
-import { type MutualMode, MutualSelect } from '~/components/masto/mutual-select'
+import { MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
   StatusCardAction,
@@ -18,6 +19,7 @@ import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
+import { mutualModeAtom, timeoutAtom } from '~/stores/filter'
 import type { Route } from './+types/timeline'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -59,8 +61,8 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
     if (state === 'idle' && data) setUserReactions((prev) => [...prev, ...data.data])
   }, [fetcher])
 
-  const [mutualMode, setMutualMode] = useState<MutualMode>('mutual')
-  const [timeout, setTimeout] = useState(1000 * 60 * 2)
+  const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
+  const [timeout, setTimeout] = useAtom(timeoutAtom)
 
   const isItemLoaded = useCallback((index: number) => index < userReactions.length, [userReactions.length])
   const loadMoreItems = useCallback(() => {
