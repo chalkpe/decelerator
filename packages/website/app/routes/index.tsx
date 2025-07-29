@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { createRestAPIClient } from 'masto'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, Form as RouterForm, redirect, useNavigate, useSubmit } from 'react-router'
+import { Form as RouterForm, redirect, useNavigate, useSubmit } from 'react-router'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
@@ -73,7 +73,7 @@ export default function Home() {
           </Form>
         </div>
       </div>
-      <div className="text-balance text-center text-xs text-muted-foreground">
+      {/* <div className="text-balance text-center text-xs text-muted-foreground">
         로그인함으로써{' '}
         <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
           이용약관
@@ -83,7 +83,7 @@ export default function Home() {
           개인정보 처리방침
         </Link>
         에 동의합니다.
-      </div>
+      </div> */}
     </div>
   )
 }
