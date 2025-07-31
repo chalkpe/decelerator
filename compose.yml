@@ -107,6 +107,7 @@ services:
       interval: 10s
     environment:
       - PORT=8234
+      - BETTER_AUTH_URL=http://localhost:8234
       - BETTER_AUTH_SECRET=decelerator
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
 

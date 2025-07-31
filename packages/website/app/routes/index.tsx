@@ -92,7 +92,7 @@ export async function action({ request }: Route.ActionArgs) {
   const result = formSchema.safeParse(Object.fromEntries(await request.formData()))
   if (!result.success) throw new Error('올바른 도메인을 입력하세요.')
 
-  const { domain } = result.data
+  const domain = result.data.domain.trim().toLowerCase()
   let app = await prisma.app.findUnique({ where: { domain } })
 
   if (!app) {
