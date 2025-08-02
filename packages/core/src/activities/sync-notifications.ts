@@ -1,5 +1,5 @@
 import { prisma } from '@decelerator/database'
-import { log, sleep } from '@temporalio/activity'
+import { sleep } from '@temporalio/activity'
 import { createRestAPIClient } from 'masto'
 
 export interface SyncNotificationsParams {

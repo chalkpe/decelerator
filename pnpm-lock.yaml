@@ -74,15 +74,9 @@ importers:
         specifier: ^24.0.1
         version: 24.0.1
     devDependencies:
-      masto:
-        specifier: ^7.2.0
-        version: 7.2.0
       prisma:
         specifier: ^6.12.0
         version: 6.12.0(typescript@5.8.3)
-      prisma-json-types-generator:
-        specifier: ^3.5.1
-        version: 3.5.1(@prisma/client@6.12.0(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3)
 
   packages/website:
     dependencies:
@@ -158,6 +152,9 @@ importers:
       masto:
         specifier: ^7.2.0
         version: 7.2.0
+      misskey-js:
+        specifier: 2025.8.0-alpha.3
+        version: 2025.8.0-alpha.3
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -740,9 +737,6 @@ packages:
   '@prisma/debug@6.12.0':
     resolution: {integrity: sha512-plbz6z72orcqr0eeio7zgUrZj5EudZUpAeWkFTA/DDdXEj28YHDXuiakvR6S7sD6tZi+jiwQEJAPeV6J6m/tEQ==}
 
-  '@prisma/dmmf@6.12.0':
-    resolution: {integrity: sha512-vL8zy61mi9Mv+w5qLvtF9hrhGu4rUZqhSpWWTxx1nengr1Wi7JfKkjJGBiCT79hSurq3oMC71iGAScyqwvi4Fg==}
-
   '@prisma/engines-version@6.12.0-15.8047c96bbd92db98a2abc7c9323ce77c02c89dbc':
     resolution: {integrity: sha512-70vhecxBJlRr06VfahDzk9ow4k1HIaSfVUT3X0/kZoHCMl9zbabut4gEXAyzJZxaCGi5igAA7SyyfBI//mmkbQ==}
 
@@ -751,12 +745,6 @@ packages:
 
   '@prisma/fetch-engine@6.12.0':
     resolution: {integrity: sha512-EamoiwrK46rpWaEbLX9aqKDPOd8IyLnZAkiYXFNuq0YsU0Z8K09/rH8S7feOWAVJ3xzeSgcEJtBlVDrajM9Sag==}
-
-  '@prisma/generator-helper@6.12.0':
-    resolution: {integrity: sha512-Bu8AuZJ7xBkmTUHiAL545sc0R5h9HSCnk3NF0POTh8GOMg3JnSoBJUQXVT2z97vkQ8NhtnqEJUlGwkDTbn8pKw==}
-
-  '@prisma/generator@6.12.0':
-    resolution: {integrity: sha512-zHZQKfKNwCp/XweIEuzQG2o4N5AxxWwa9W/QjOP0IFrphjPOTYvsEg8fYqboJDGVAspwY9crT8sppoz5kUovsA==}
 
   '@prisma/get-platform@6.12.0':
     resolution: {integrity: sha512-nRerTGhTlgyvcBlyWgt8OLNIV7QgJS2XYXMJD1hysorMCuLAjuDDuoxmVt7C2nLxbuxbWPp7OuFRHC23HqD9dA==}
@@ -1347,6 +1335,9 @@ packages:
   '@simplewebauthn/server@13.1.2':
     resolution: {integrity: sha512-VwoDfvLXSCaRiD+xCIuyslU0HLxVggeE5BL06+GbsP2l1fGf5op8e0c3ZtKoi+vSg1q4ikjtAghC23ze2Q3H9g==}
     engines: {node: '>=20.0.0'}
+
+  '@simplewebauthn/types@12.0.0':
+    resolution: {integrity: sha512-q6y8MkoV8V8jB4zzp18Uyj2I7oFp2/ONL8c3j8uT06AOWu3cIChc1au71QYHrP2b+xDapkGTiv+9lX7xkTlAsA==}
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
@@ -2531,6 +2522,9 @@ packages:
     resolution: {integrity: sha512-oG62iEk+CYt5Xj2YqI5Xi9xWUeZhDI8jjQmC5oThVH5JGCTgIjr7ciJDzC7MBzYd//WvR1OTmP5Q38Q8ShQtVA==}
     engines: {node: '>= 18'}
 
+  misskey-js@2025.8.0-alpha.3:
+    resolution: {integrity: sha512-uSBhar5vQUu+79sc8TrU6OQZPMfWkiKS5gP1SZVwaB1/pzgqyvDw4qYNqkcOo1Q9aolamQ53O7LI48ctUZRXRw==}
+
   mkdirp@3.0.1:
     resolution: {integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==}
     engines: {node: '>=10'}
@@ -2691,15 +2685,6 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  prisma-json-types-generator@3.5.1:
-    resolution: {integrity: sha512-PKhsAxs6IYx/BD6vomsfm0SZQ3wSUDb3GKof7o/CaAJ7kCLmHub6/qJQfD+qwve3omoSrp9kQ29Qj2T980PEUA==}
-    engines: {node: '>=14.0'}
-    hasBin: true
-    peerDependencies:
-      '@prisma/client': ~6.11
-      prisma: ~6.11
-      typescript: ^5.8
-
   prisma@6.12.0:
     resolution: {integrity: sha512-pmV7NEqQej9WjizN6RSNIwf7Y+jeh9mY1JEX2WjGxJi4YZWexClhde1yz/FuvAM+cTwzchcMytu2m4I6wPkIzg==}
     engines: {node: '>=18.18'}
@@ -2847,6 +2832,9 @@ packages:
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
+
+  reconnecting-websocket@4.4.0:
+    resolution: {integrity: sha512-D2E33ceRPga0NvTDhJmphEgJ7FUYF0v4lr1ki0csq06OdlxKfugGzN0dSkxM/NfqCxYELK4KcaTOUOjTV6Dcng==}
 
   remix-utils@8.7.0:
     resolution: {integrity: sha512-oRumofsYFaxHyPtqLuYe3g2nQi4SMYjCoebaeed0gYHIOKBiPPYdNP6cgmQbFjQQ5pwXV+uQiKLqO6pM9ep3VA==}
@@ -3902,8 +3890,6 @@ snapshots:
 
   '@prisma/debug@6.12.0': {}
 
-  '@prisma/dmmf@6.12.0': {}
-
   '@prisma/engines-version@6.12.0-15.8047c96bbd92db98a2abc7c9323ce77c02c89dbc': {}
 
   '@prisma/engines@6.12.0':
@@ -3918,14 +3904,6 @@ snapshots:
       '@prisma/debug': 6.12.0
       '@prisma/engines-version': 6.12.0-15.8047c96bbd92db98a2abc7c9323ce77c02c89dbc
       '@prisma/get-platform': 6.12.0
-
-  '@prisma/generator-helper@6.12.0':
-    dependencies:
-      '@prisma/debug': 6.12.0
-      '@prisma/dmmf': 6.12.0
-      '@prisma/generator': 6.12.0
-
-  '@prisma/generator@6.12.0': {}
 
   '@prisma/get-platform@6.12.0':
     dependencies:
@@ -4502,6 +4480,8 @@ snapshots:
       '@peculiar/asn1-rsa': 2.4.0
       '@peculiar/asn1-schema': 2.4.0
       '@peculiar/asn1-x509': 2.4.0
+
+  '@simplewebauthn/types@12.0.0': {}
 
   '@standard-schema/utils@0.3.0': {}
 
@@ -5681,6 +5661,12 @@ snapshots:
     dependencies:
       minipass: 7.1.2
 
+  misskey-js@2025.8.0-alpha.3:
+    dependencies:
+      '@simplewebauthn/types': 12.0.0
+      eventemitter3: 5.0.1
+      reconnecting-websocket: 4.4.0
+
   mkdirp@3.0.1: {}
 
   morgan@1.10.1:
@@ -5822,15 +5808,6 @@ snapshots:
 
   prettier@2.8.8: {}
 
-  prisma-json-types-generator@3.5.1(@prisma/client@6.12.0(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3):
-    dependencies:
-      '@prisma/client': 6.12.0(prisma@6.12.0(typescript@5.8.3))(typescript@5.8.3)
-      '@prisma/generator-helper': 6.12.0
-      prisma: 6.12.0(typescript@5.8.3)
-      semver: 7.7.2
-      tslib: 2.8.1
-      typescript: 5.8.3
-
   prisma@6.12.0(typescript@5.8.3):
     dependencies:
       '@prisma/config': 6.12.0
@@ -5964,6 +5941,8 @@ snapshots:
   react@19.1.0: {}
 
   readdirp@4.1.2: {}
+
+  reconnecting-websocket@4.4.0: {}
 
   remix-utils@8.7.0(react-router@7.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)(zod@4.0.5):
     dependencies:

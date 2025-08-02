@@ -2,6 +2,7 @@ import type { CustomEmoji } from 'masto/mastodon/entities/v1/custom-emoji.js'
 import sanitize from 'sanitize-html'
 
 export const scopes = 'read'
+export const permissions = ['read:account', 'read:notifications', 'read:following']
 
 export const createRedirectUri = (domain: string) => `${import.meta.env.VITE_REDIRECT_URL}/api/auth/oauth2/callback/${domain}`
 

@@ -4,6 +4,10 @@
   "version": "0.0.1",
   "private": true,
   "description": "내 글을 부스트한 사람의 글을 모아주는 서비스",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chalkpe/decelerator"
+  },
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm -r --parallel run dev",

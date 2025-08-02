@@ -3,17 +3,19 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
-generator json {
-  provider = "prisma-json-types-generator"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum ServerSoftware {
+  MASTODON
+  MISSKEY
+}
+
 model App {
-  domain       String @id
+  domain       String         @id
+  software     ServerSoftware
   clientId     String
   clientSecret String
   redirectUri  String
@@ -30,9 +32,6 @@ model ReblogNotification {
 
   user      User           @relation(fields: [domain, userId], references: [domain, mastodonId])
   reactions UserReaction[]
-
-  /// [ReblogNotificationData]
-  data Json
 
   @@unique([domain, notificationId])
   @@map("reblog_notification")
@@ -63,9 +62,6 @@ model StatusIndex {
   createdAt DateTime
   accountId String
   reblogId  String?
-
-  /// [StatusIndexData]
-  data Json
 
   referenced  UserReaction[] @relation("OriginOf")
   referencing UserReaction[] @relation("ReactionOf")

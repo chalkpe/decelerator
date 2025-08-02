@@ -33,6 +33,7 @@
     "jotai": "^2.12.5",
     "lucide-react": "^0.532.0",
     "masto": "^7.2.0",
+    "misskey-js": "2025.8.0-alpha.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.60.0",
