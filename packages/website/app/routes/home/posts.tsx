@@ -68,6 +68,8 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
 
   const listRef = useRef<List>(null)
+  const infiniteLoaderRef = useRef<InfiniteLoader>(null)
+
   const cardsRef = useRef<Record<string, HTMLElement | null>>({})
   const sizesRef = useRef<Record<string, number>>({})
 
@@ -153,12 +155,12 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
             </SelectContent>
           </Select>
         </nav>
-        <FlushButton />
+        <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
       </header>
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (
-            <InfiniteLoader isItemLoaded={isItemLoaded} itemCount={totalCount} loadMoreItems={loadMoreItems}>
+            <InfiniteLoader ref={infiniteLoaderRef} isItemLoaded={isItemLoaded} itemCount={totalCount} loadMoreItems={loadMoreItems}>
               {({ onItemsRendered, ref }) => (
                 <List
                   ref={(el) => {

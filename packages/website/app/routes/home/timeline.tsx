@@ -76,6 +76,8 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
   }, [fetcher, userReactions])
 
   const listRef = useRef<List>(null)
+  const infiniteLoaderRef = useRef<InfiniteLoader>(null)
+
   const cardsRef = useRef<Record<string, HTMLDivElement | null>>({})
   const sizesRef = useRef<Record<string, number>>({})
 
@@ -138,12 +140,17 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={loaderData.software} />
         </nav>
-        <FlushButton />
+        <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
       </header>
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (
-            <InfiniteLoader isItemLoaded={isItemLoaded} itemCount={loaderData.totalCount} loadMoreItems={loadMoreItems}>
+            <InfiniteLoader
+              ref={infiniteLoaderRef}
+              isItemLoaded={isItemLoaded}
+              itemCount={loaderData.totalCount}
+              loadMoreItems={loadMoreItems}
+            >
               {({ onItemsRendered, ref }) => (
                 <List
                   ref={(el) => {
