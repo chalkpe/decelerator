@@ -1,14 +1,14 @@
+import type { ServerSoftware } from '@decelerator/database'
 import { ExternalLink, Globe, Lock, Mail, Moon } from 'lucide-react'
-import type { Status } from 'masto/mastodon/entities/v1/status.js'
 import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardTitle } from '~/components/ui/card'
 import { ScrollArea, ScrollBar } from '~/components/ui/scroll-area'
-import { sanitizeContent } from '~/lib/masto'
+import { boostMap, sanitizeContent } from '~/lib/masto'
 import { cn, formatDistance } from '~/lib/utils'
 
-type StatusCardContextValue = { status: Status; domain?: string }
+type StatusCardContextValue = { status: PrismaJson.StatusIndexData; domain: string; software: ServerSoftware }
 const StatusCardContext = createContext<StatusCardContextValue>({} as StatusCardContextValue)
 
 function useStatusCard() {
@@ -38,7 +38,7 @@ const StatusCardTitle: FC<ComponentProps<'div'>> = ({ children, className, ...pr
 
 const divider = (key: Key) => <Fragment key={key}>&nbsp;&middot;&nbsp;</Fragment>
 
-const VisibilityIcon: FC<{ visibility: Status['visibility'] }> = ({ visibility }) => {
+const VisibilityIcon: FC<{ visibility: PrismaJson.StatusIndexData['visibility'] }> = ({ visibility }) => {
   const className = 'size-4 inline align-sub mr-0.5'
   const icons = {
     public: (
@@ -84,13 +84,15 @@ const StatusCardDescription: FC<ComponentProps<'div'>> = ({ children, ...props }
 }
 
 const StatusCardDescriptionWithTimeout: FC<ComponentProps<'div'> & { timeout: [Date, Date] }> = ({ timeout, children, ...props }) => {
-  const { status } = useStatusCard()
+  const { status, software } = useStatusCard()
   const [date, now] = [new Date(timeout[0]), new Date(timeout[1])]
   return (
     <CardDescription {...props}>
       <VisibilityIcon visibility={status.visibility} />
       {divider('divider-0')}
-      <span suppressHydrationWarning>{formatDistance({ type: 'abbreviated', date, suffix: '전에', absoluteTooOld: true })} 부스트함</span>
+      <span suppressHydrationWarning>
+        {formatDistance({ type: 'abbreviated', date, suffix: '전에', absoluteTooOld: true })} {boostMap[software]}함
+      </span>
       {divider('divider-1')}
       <span>{formatDistance({ type: 'full', date, now, suffix: '후에', immediateText: '바로' })} 작성함</span>
       {Children.toArray(children).flatMap((child, index) => [divider(index), child])}
@@ -99,7 +101,7 @@ const StatusCardDescriptionWithTimeout: FC<ComponentProps<'div'> & { timeout: [D
 }
 
 const StatusCardAction: FC<ComponentProps<'div'>> = ({ children, className, ...props }) => {
-  const { status, domain } = useStatusCard()
+  const { status, domain, software } = useStatusCard()
   return (
     <CardAction className={cn('flex flex-row items-center gap-2', className)} {...props}>
       {domain && (
@@ -107,7 +109,14 @@ const StatusCardAction: FC<ComponentProps<'div'>> = ({ children, className, ...p
           variant="outline"
           onClick={(e) => {
             e.preventDefault()
-            window.open(`https://${domain}/@${status.account.acct}/${status.id}`, '_blank')
+            switch (software) {
+              case 'MASTODON':
+                window.open(`https://${domain}/@${status.account.acct}/${status.id}`, '_blank')
+                break
+              case 'MISSKEY':
+                window.open(`https://${domain}/notes/${status.id}`, '_blank')
+                break
+            }
           }}
         >
           <ExternalLink />
@@ -149,8 +158,8 @@ const StatusCardContent: FC<ComponentProps<'div'>> = ({ children, className, ...
   )
 }
 
-const StatusCard: FC<ComponentProps<'div'> & StatusCardContextValue> = ({ status, domain, ...props }) => {
-  const contextValue = useMemo<StatusCardContextValue>(() => ({ status, domain }), [status, domain])
+const StatusCard: FC<ComponentProps<'div'> & StatusCardContextValue> = ({ status, domain, software, ...props }) => {
+  const contextValue = useMemo<StatusCardContextValue>(() => ({ status, domain, software }), [status, domain, software])
   return (
     <StatusCardContext.Provider value={contextValue}>
       <Card {...props} />

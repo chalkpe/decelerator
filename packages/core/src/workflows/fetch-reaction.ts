@@ -1,3 +1,4 @@
+import type { ServerSoftware } from '@decelerator/database'
 import { ApplicationFailure, proxyActivities } from '@temporalio/workflow'
 import type * as createUserReactionActivities from '../activities/create-user-reaction.js'
 import type * as fetchRelationshipsActivities from '../activities/fetch-relationships.js'
@@ -37,10 +38,11 @@ const { createUserReactionActivity: createUserReaction } = proxyActivities<typeo
 
 export interface FetchReactionWorkflowInput {
   domain: string
+  software: ServerSoftware
   notificationId: string
 }
 
-export async function fetchReactionWorkflow({ domain, notificationId }: FetchReactionWorkflowInput) {
+export async function fetchReactionWorkflow({ domain, software, notificationId }: FetchReactionWorkflowInput) {
   // 알림 찾기
   const notification = await findNotification({ where: { domain, notificationId } })
   if (!notification) throw ApplicationFailure.nonRetryable('Notification not found', 'NotificationNotFound')
@@ -51,7 +53,7 @@ export async function fetchReactionWorkflow({ domain, notificationId }: FetchRea
 
   // 인덱스 동기화
   const { accountId, statusId: minId, createdAt: gt } = notification
-  await syncIndex({ domain, accessToken: account.accessToken, accountId, minId })
+  await syncIndex({ domain, software, accessToken: account.accessToken, accountId, minId })
 
   // 부스트 인덱스 찾기
   const reblog = await findIndex({
@@ -64,8 +66,7 @@ export async function fetchReactionWorkflow({ domain, notificationId }: FetchRea
   const reaction = await findIndex({ where: { domain, accountId, createdAt: { gt }, reblogId: null }, orderBy: { createdAt: 'asc' } })
   if (!reaction) throw ApplicationFailure.nonRetryable('Reaction not found', 'ReactionNotFound')
 
-  const { relationships } = await fetchRelationships({ domain, accessToken: account.accessToken, accountIds: [reaction.accountId] })
-  const fromMutual = relationships[reaction.accountId]
+  const { fromMutual } = await fetchRelationships({ domain, software, accessToken: account.accessToken, accountId: reaction.accountId })
 
   // 알림에 반응 ID 업데이트
   await createUserReaction({

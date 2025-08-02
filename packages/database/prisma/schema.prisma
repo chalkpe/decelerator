@@ -3,6 +3,10 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -62,6 +66,9 @@ model StatusIndex {
   createdAt DateTime
   accountId String
   reblogId  String?
+
+  /// [StatusIndexData]
+  data Json
 
   referenced  UserReaction[] @relation("OriginOf")
   referencing UserReaction[] @relation("ReactionOf")

@@ -1,8 +1,16 @@
+import type { ServerSoftware } from '@decelerator/database'
 import { Clock4 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { boostMap } from '~/lib/masto'
 
-const TimeoutSelect = ({ timeout, setTimeout }: { timeout: number; setTimeout: (value: number) => void }) => {
+interface TimeoutSelectProps {
+  timeout: number
+  setTimeout: (value: number) => void
+  software: ServerSoftware
+}
+
+const TimeoutSelect = ({ timeout, setTimeout, software }: TimeoutSelectProps) => {
   const options = [
     { label: '30초', value: 1000 * 30 },
     { label: '1분', value: 1000 * 60 },
@@ -21,7 +29,7 @@ const TimeoutSelect = ({ timeout, setTimeout }: { timeout: number; setTimeout: (
         </TooltipTrigger>
         <TooltipContent>
           내 글에 대한 반응이라고 단정할 수 있는 최대 지연 기간입니다.
-          <br /> 1분으로 설정하면, 내 글을 부스트하고 1분 이내로 작성된 글만 표시됩니다.
+          <br /> 1분으로 설정하면, 내 글을 {boostMap[software]}하고 1분 이내로 작성된 글만 표시됩니다.
         </TooltipContent>
       </Tooltip>
       <SelectContent>

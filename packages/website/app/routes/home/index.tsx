@@ -1,3 +1,4 @@
+import { prisma } from '@decelerator/database'
 import { ExternalLink, Home, Repeat2, ThumbsUp } from 'lucide-react'
 import { NavLink, redirect } from 'react-router'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
@@ -6,6 +7,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/ca
 import { useFlush } from '~/hooks/use-flush'
 import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
+import { boostMap } from '~/lib/masto'
 import pkg from '../../../../../package.json'
 import type { Route } from './+types'
 
@@ -13,11 +15,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   const auth = await createAuth()
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')
+
+  const app = await prisma.app.findUnique({ where: { domain: session.user.domain } })
+  if (!app) return redirect('/')
+
+  return { software: app.software }
 }
 
-export default function HomeIndex() {
-  const { data: session } = authClient.useSession()
+export default function HomeIndex({ loaderData }: Route.ComponentProps) {
+  const { software } = loaderData
+
   const { current } = useFlush()
+  const { data: session } = authClient.useSession()
 
   return (
     <div className="flex flex-col items-stretch flex-auto" suppressHydrationWarning>
@@ -48,7 +57,7 @@ export default function HomeIndex() {
           <div className="w-full text-center break-keep text-balance">
             <div className="flex flex-row flex-wrap items-stretch justify-center gap-3">
               <NavLink to="/home/timeline" className="flex-auto">
-                <Card>
+                <Card className="h-full">
                   <CardHeader>
                     <CardTitle>
                       <Home className="inline" /> 반응 타임라인
@@ -58,12 +67,12 @@ export default function HomeIndex() {
                 </Card>
               </NavLink>
               <NavLink to="/home/posts" className="flex-auto">
-                <Card>
+                <Card className="h-full">
                   <CardHeader>
                     <CardTitle>
-                      <Repeat2 className="inline" /> 부스트된 게시글
+                      <Repeat2 className="inline" /> {boostMap[software]}된 게시글
                     </CardTitle>
-                    <CardDescription>부스트된 게시글의 반응을 각각 확인할 수 있습니다.</CardDescription>
+                    <CardDescription>{boostMap[software]}된 게시글의 반응을 각각 확인할 수 있습니다.</CardDescription>
                   </CardHeader>
                 </Card>
               </NavLink>

@@ -1,5 +1,24 @@
 import { PrismaClient } from './generated/prisma/client.js'
 
+declare global {
+  namespace PrismaJson {
+    type CustomEmoji = {
+      shortcode: string
+      url: string
+    }
+
+    type StatusIndexData = {
+      id: string
+      createdAt: string
+      visibility: 'public' | 'unlisted' | 'private' | 'direct'
+      account: { acct: string; avatar: string; displayName: string; emojis: CustomEmoji[] }
+      content: string
+      emojis: CustomEmoji[]
+      mediaAttachments: { id: string; url: string; description: string }[]
+    }
+  }
+}
+
 const client = new PrismaClient()
 const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient }
 

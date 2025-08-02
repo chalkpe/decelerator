@@ -1,3 +1,4 @@
+import type { ServerSoftware } from '@decelerator/database'
 import { ApplicationFailure, proxyActivities } from '@temporalio/workflow'
 import type * as findAccountActivities from '../activities/find-account.js'
 import type * as findNotificationActivities from '../activities/find-notification.js'
@@ -27,6 +28,7 @@ const { findNotificationActivity: findNotification } = proxyActivities<typeof fi
 
 export interface FetchNotificationsParams {
   domain: string
+  software: ServerSoftware
   userId: string
 }
 
@@ -35,7 +37,7 @@ export interface FetchNotificationsResult {
 }
 
 export async function fetchNotificationsWorkflow(params: FetchNotificationsParams): Promise<FetchNotificationsResult> {
-  const { domain, userId } = params
+  const { domain, software, userId } = params
   const notificationIds = new Set<string>()
 
   const account = await findAccount({ where: { providerId: domain, accountId: userId }, select: { accessToken: true } })
@@ -56,8 +58,8 @@ export async function fetchNotificationsWorkflow(params: FetchNotificationsParam
   ])
 
   // 저장된 알림의 위치부터 이어서 데이터 동기화
-  await syncNotifications({ domain, accessToken: account.accessToken, minId: latest?.notificationId })
-  await syncNotifications({ domain, accessToken: account.accessToken, maxId: oldest?.notificationId })
+  await syncNotifications({ domain, software, accessToken: account.accessToken, minId: latest?.notificationId })
+  await syncNotifications({ domain, software, accessToken: account.accessToken, maxId: oldest?.notificationId })
 
   // 저장된 알림이 없었던 경우 동기화된 모든 알림을 목록에 추가
   if (!latest && !oldest) {

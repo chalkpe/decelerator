@@ -28,6 +28,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!session) return redirect('/')
 
   const { domain, mastodonId: userId } = session.user
+  const app = await prisma.app.findUnique({ where: { domain } })
+  if (!app) return redirect('/')
 
   const { searchParams } = new URL(request.url)
   const timestamp = searchParams.get('timestamp')
@@ -44,11 +46,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       where: { domain, accountId: userId, referenced: { some: {} } },
     }),
   ])
-  return { statuses, totalCount }
+  return { statuses, totalCount, domain: app.domain, software: app.software }
 }
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
-  const { statuses, totalCount } = loaderData
+  const { statuses, totalCount, domain, software } = loaderData
 
   const fetcher = useFetcher<typeof loader>()
   const isItemLoaded = useCallback((index: number) => index < statuses.length, [statuses.length])
@@ -104,7 +106,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           cardsRef.current[status.statusId] = el
         }}
       >
-        <StatusCard status={status.data} domain={status.domain} className="border-2 border-accent-foreground">
+        <StatusCard status={status.data} domain={domain} software={software} className="border-2 border-accent-foreground">
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescription>
@@ -119,7 +121,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
             {referenced.map(({ reaction, createdAt, reactedAt }) => (
               <li key={reaction.statusId}>
-                <StatusCard status={reaction.data} domain={status.domain}>
+                <StatusCard status={reaction.data} domain={domain} software={software}>
                   <CardHeader>
                     <StatusCardTitle />
                     <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />
@@ -140,7 +142,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
-          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} />
+          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
           <Select value={sortBy} onValueChange={(s) => setSortBy(s as TimelineSortBy)}>
             <SelectTrigger>
               <SelectValue placeholder="정렬" />

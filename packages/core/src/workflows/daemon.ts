@@ -1,3 +1,4 @@
+import type { ServerSoftware } from '@decelerator/database'
 import { continueAsNew, defineUpdate, executeChild, proxyActivities, setHandler, workflowInfo } from '@temporalio/workflow'
 import Denque from 'denque'
 import ms from 'ms'
@@ -25,10 +26,11 @@ export const flush = defineUpdate<FlushUpdateResult, FlushUpdateArgs>('flush')
 
 export interface DaemonWorkflowInput {
   domain: string
+  software: ServerSoftware
   queue?: DaemonQueueItem[]
 }
 
-export async function daemonWorkflow({ domain, queue: _queue }: DaemonWorkflowInput) {
+export async function daemonWorkflow({ domain, software, queue: _queue }: DaemonWorkflowInput) {
   const queue = new Denque<DaemonQueueItem>(_queue ?? [])
   const reactions: Record<string, Denque<DaemonQueueItem>> = {}
 
@@ -44,7 +46,7 @@ export async function daemonWorkflow({ domain, queue: _queue }: DaemonWorkflowIn
     for (const { accountId: userId } of await findAccounts({ where: { providerId: domain }, orderBy: { createdAt: 'desc' } })) {
       const { notificationIds } = await executeChild<typeof fetchNotificationsWorkflow>('fetchNotificationsWorkflow', {
         workflowId: `fetch-notifications-${domain}-${userId}`,
-        args: [{ domain, userId }],
+        args: [{ domain, software, userId }],
       })
       for (const notificationId of notificationIds) queue.push({ userId, notificationId })
     }
@@ -71,7 +73,7 @@ export async function daemonWorkflow({ domain, queue: _queue }: DaemonWorkflowIn
         const { userId, notificationId } = current
         await executeChild<typeof fetchReactionWorkflow>('fetchReactionWorkflow', {
           workflowId: `fetch-reaction-${domain}-${notificationId}`,
-          args: [{ domain, notificationId }],
+          args: [{ domain, software, notificationId }],
         })
 
         reactions[userId] ??= new Denque<DaemonQueueItem>()

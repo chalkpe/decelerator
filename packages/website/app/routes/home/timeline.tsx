@@ -18,7 +18,6 @@ import {
 import { TimeoutSelect } from '~/components/masto/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
-import { authClient } from '~/lib/auth-client'
 import { mutualModeAtom, timeoutAtom } from '~/stores/filter'
 import type { Route } from './+types/timeline'
 
@@ -28,6 +27,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!session) return redirect('/')
 
   const { domain, mastodonId: userId } = session.user
+  const app = await prisma.app.findUnique({ where: { domain } })
+  if (!app) return redirect('/')
 
   const { searchParams } = new URL(request.url)
   const timestamp = searchParams.get('timestamp')
@@ -37,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     prisma.userReaction.findMany({
       where: { domain, status: { accountId: userId }, createdAt },
       orderBy: { createdAt: 'desc' },
-      include: { reaction: true, notification: true },
+      include: { status: true, reaction: true },
       take: 40,
     }),
     prisma.userReaction.count({
@@ -48,12 +49,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     data,
     totalCount,
+    domain: app.domain,
+    software: app.software,
   }
 }
 
 export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
-  const { data: session } = authClient.useSession()
-
   const fetcher = useFetcher<typeof loader>()
   const [userReactions, setUserReactions] = useState<typeof loaderData.data>(loaderData.data)
   useEffect(() => {
@@ -79,15 +80,15 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
   const sizesRef = useRef<Record<string, number>>({})
 
   const Row = ({ index }: { index: number }) => {
-    const { createdAt, reactedAt, notification, reaction, fromMutual } = userReactions[index]
+    const { createdAt, reactedAt, notificationId, status, reaction, fromMutual } = userReactions[index]
 
     useEffect(() => {
-      const height = cardsRef.current[notification.notificationId]?.getBoundingClientRect().height
+      const height = cardsRef.current[notificationId]?.getBoundingClientRect().height
       if (typeof height === 'number') {
         sizesRef.current[index] = height
         listRef.current?.resetAfterIndex(index)
       }
-    }, [index, notification])
+    }, [index, notificationId])
 
     const timeoutError = reactedAt.getTime() - createdAt.getTime() > timeout
     const mutualModeError = (mutualMode === 'foreigner' && fromMutual) || (mutualMode === 'mutual' && !fromMutual)
@@ -96,7 +97,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       return (
         <div
           ref={(el) => {
-            cardsRef.current[notification.notificationId] = el
+            cardsRef.current[notificationId] = el
           }}
         />
       )
@@ -106,17 +107,17 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       <div
         className="pl-6 pr-6 pt-6"
         ref={(el) => {
-          cardsRef.current[notification.notificationId] = el
+          cardsRef.current[notificationId] = el
         }}
       >
-        <StatusCard key={notification.notificationId} status={reaction.data} domain={session?.user.domain}>
+        <StatusCard key={notificationId} status={reaction.data} domain={loaderData.domain} software={loaderData.software}>
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />
             <StatusCardAction />
           </CardHeader>
           <StatusCardContent>
-            <StatusCard status={notification.data.status} domain={session?.user.domain}>
+            <StatusCard status={status.data} domain={loaderData.domain} software={loaderData.software}>
               <CardHeader>
                 <StatusCardTitle />
                 <StatusCardDescription />
@@ -135,7 +136,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
-          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} />
+          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={loaderData.software} />
         </nav>
         <FlushButton />
       </header>
