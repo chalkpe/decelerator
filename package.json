@@ -8,6 +8,11 @@
     "type": "git",
     "url": "https://github.com/chalkpe/decelerator"
   },
+  "license": "MIT",
+  "author": {
+    "name": "Chalk",
+    "url": "https://github.com/chalkpe"
+  },
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm -r --parallel run dev",
