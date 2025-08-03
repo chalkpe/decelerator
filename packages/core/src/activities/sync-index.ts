@@ -22,7 +22,7 @@ function createDataFromMasto(status: Status): PrismaJson.StatusIndexData {
       acct: status.account.acct,
       avatar: status.account.avatar,
       displayName: status.account.displayName,
-      emojis: status.emojis.map(createCustomEmojiFromMasto),
+      emojis: status.account.emojis.map(createCustomEmojiFromMasto),
     },
     content: status.content,
     emojis: status.emojis.map(createCustomEmojiFromMasto),
