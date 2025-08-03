@@ -27,7 +27,7 @@ export const HomeSessionSelector: FC<HomeSessionSelectorProps> = ({ promise }) =
           <Button
             key={session.id}
             variant="outline"
-            className="flex items-center gap-2 h-14"
+            className="flex items-center gap-2 h-15"
             onClick={async (e) => {
               e.preventDefault()
               await authClient.multiSession.setActive({ sessionToken: session.sessionToken })

@@ -1,5 +1,5 @@
 import { prisma } from '@decelerator/database'
-import { useAtom } from 'jotai/react'
+import { useAtom } from 'jotai'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'

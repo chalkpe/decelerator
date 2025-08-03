@@ -6,8 +6,8 @@ export default [
     layout('routes/home/layout.tsx', [
       index('routes/home/index.tsx'),
       route('sse', 'routes/home/sse.tsx'),
-      route('posts', 'routes/home/posts.tsx'),
       route('timeline', 'routes/home/timeline.tsx'),
+      route('posts/:sortBy?', 'routes/home/posts.tsx'),
     ]),
   ]),
 

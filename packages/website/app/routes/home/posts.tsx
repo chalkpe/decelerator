@@ -1,7 +1,7 @@
 import { prisma } from '@decelerator/database'
-import { useAtom } from 'jotai/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { redirect, useFetcher } from 'react-router'
+import { useAtom } from 'jotai'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { redirect, useFetcher, useNavigate } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
@@ -21,10 +21,11 @@ import { TimelineSortBySelect } from '~/components/nav/timeline-sort-by-select'
 import { filterTimeout, TimeoutSelect } from '~/components/nav/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
+import { boostMap } from '~/lib/masto'
 import { mutualModeAtom, timelineSortByAtom, timeoutAtom } from '~/stores/filter'
 import type { Route } from './+types/posts'
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const auth = await createAuth()
   const session = await auth.api.getSession(request)
   if (!session) return redirect('/')
@@ -37,10 +38,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const timestamp = searchParams.get('timestamp')
   const createdAt = timestamp ? { lt: new Date(timestamp) } : undefined
 
+  const sort = params.sortBy ?? 'createdAt'
   const [data, totalCount] = await Promise.all([
     prisma.statusIndex.findMany({
       where: { domain, accountId: userId, referenced: { some: {} }, createdAt },
-      orderBy: { createdAt: 'desc' },
+      orderBy: sort === 'boost' ? [{ referenced: { _count: 'desc' } }, { createdAt: 'desc' }] : { createdAt: 'desc' },
       take: 40,
       include: { referenced: { include: { reaction: true } } },
     }),
@@ -53,6 +55,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const { data, totalCount, domain, software, timestamp } = loaderData
+
+  const navigate = useNavigate()
   const fetcher = useFetcher<typeof loader>()
 
   const [statuses, setStatuses] = useState<typeof data>(data)
@@ -76,25 +80,19 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     return await fetcher.load(`/home/posts?timestamp=${lastStatus.createdAt.toISOString()}`)
   }, [fetcher, statuses])
 
-  const [sortBy, setSortBy] = useAtom(timelineSortByAtom)
   const [timeout, setTimeout] = useAtom(timeoutAtom)
   const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
+  const [sortBy, setSortBy] = useAtom(timelineSortByAtom)
+
+  useEffect(() => {
+    if (sortBy) navigate(`/home/posts/${sortBy}`)
+  }, [sortBy, navigate])
 
   const listRef = useRef<List>(null)
   const infiniteLoaderRef = useRef<InfiniteLoader>(null)
 
   const cardsRef = useRef(new WeakMap<(typeof data)[number], HTMLElement | null>())
   const sizesRef = useRef(new WeakMap<(typeof data)[number], number>())
-
-  const posts = useMemo(
-    () =>
-      [...statuses].sort((a, b) => {
-        const boost = b.referenced.length - a.referenced.length
-        const createdAt = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        return sortBy === 'boost' ? boost || createdAt : createdAt || boost
-      }),
-    [statuses, sortBy],
-  )
 
   const Row = ({ index, status }: { index: number; status: (typeof data)[number] }) => {
     const referenced = status.referenced.filter(
@@ -129,7 +127,11 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescription>
-              {referenced.length > 0 ? <span>{referenced.length}개의 반응</span> : <span>반응 없음</span>}
+              {status.referenced.length > 0 && (
+                <span>
+                  {status.referenced.length}번 {boostMap[software]}됨
+                </span>
+              )}
             </StatusCardDescription>
             <StatusCardAction />
           </CardHeader>
@@ -163,7 +165,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <MobileSidebarTrigger />
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
-          <TimelineSortBySelect sortBy={sortBy} setSortBy={setSortBy} listRef={listRef} />
+          <TimelineSortBySelect sortBy={sortBy} setSortBy={setSortBy} />
         </nav>
         <FlushButton listRef={listRef} infiniteLoaderRef={infiniteLoaderRef} />
       </header>
@@ -180,13 +182,13 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
                   }}
                   width={width}
                   height={height}
-                  itemCount={posts.length}
-                  itemSize={(index) => sizesRef.current.get(posts[index]) ?? 100}
+                  itemCount={statuses.length}
+                  itemSize={(index) => sizesRef.current.get(statuses[index]) ?? 100}
                   onItemsRendered={onItemsRendered}
                 >
                   {({ index, style }) => (
                     <div style={style}>
-                      <Row index={index} status={posts[index]} />
+                      <Row index={index} status={statuses[index]} />
                     </div>
                   )}
                 </List>

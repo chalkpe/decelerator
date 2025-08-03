@@ -1,6 +1,7 @@
 import './app.css'
 
-import { isRouteErrorResponse, Links, Outlet, Scripts, ScrollRestoration } from 'react-router'
+import { isRouteErrorResponse, Links, NavLink, Outlet, Scripts, ScrollRestoration } from 'react-router'
+import { Button } from '~/components/ui/button'
 import pkg from '../../../package.json'
 import type { Route } from './+types/root'
 
@@ -55,6 +56,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
           <code>{stack}</code>
         </pre>
       )}
+
+      <NavLink to="/">
+        <Button size="lg" className="mt-4">
+          홈으로 돌아가기
+        </Button>
+      </NavLink>
     </main>
   )
 }

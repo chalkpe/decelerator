@@ -1,6 +1,4 @@
 import { ClockArrowDown, Repeat2 } from 'lucide-react'
-import type { RefObject } from 'react'
-import type { VariableSizeList as List } from 'react-window'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { useIsMobile } from '~/hooks/use-mobile'
 import type { TimelineSortBy } from '~/stores/filter'
@@ -8,10 +6,9 @@ import type { TimelineSortBy } from '~/stores/filter'
 interface TimelineSortBySelectProps {
   sortBy: TimelineSortBy
   setSortBy: (value: TimelineSortBy) => void
-  listRef: RefObject<List | null>
 }
 
-const TimelineSortBySelect = ({ sortBy, setSortBy, listRef }: TimelineSortBySelectProps) => {
+const TimelineSortBySelect = ({ sortBy, setSortBy }: TimelineSortBySelectProps) => {
   const isMobile = useIsMobile()
 
   const options = [
@@ -28,13 +25,7 @@ const TimelineSortBySelect = ({ sortBy, setSortBy, listRef }: TimelineSortBySele
   ]
 
   return (
-    <Select
-      value={sortBy}
-      onValueChange={(s) => {
-        setSortBy(s as TimelineSortBy)
-        listRef.current?.resetAfterIndex(0)
-      }}
-    >
+    <Select value={sortBy} onValueChange={(s) => setSortBy(s as TimelineSortBy)}>
       <SelectTrigger>
         {isMobile ? options.find((option) => option.value === sortBy)?.icon : <SelectValue placeholder="선택" />}
       </SelectTrigger>

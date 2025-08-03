@@ -1,6 +1,7 @@
 import { taskQueue } from '@decelerator/core/constants'
 import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
+import { useAtomValue } from 'jotai'
 import { ChevronUp, Home, Loader, LogOut, Plus, Repeat2 } from 'lucide-react'
 import { Suspense } from 'react'
 import { NavLink, Outlet, redirect, useNavigate } from 'react-router'
@@ -32,6 +33,7 @@ import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
 import { boostMap } from '~/lib/masto'
 import { temporal } from '~/lib/temporal.server'
+import { timelineSortByAtom } from '~/stores/filter'
 import pkg from '../../../../../package.json'
 import type { Route } from './+types/layout'
 
@@ -70,9 +72,10 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate()
   const { data: session } = authClient.useSession()
 
+  const sortBy = useAtomValue(timelineSortByAtom)
   const items = [
     { title: '반응 타임라인', url: '/home/timeline', icon: Home, count: timelineCount },
-    { title: `${boostMap[software]}된 게시글`, url: '/home/posts', icon: Repeat2, count: postsCount },
+    { title: `${boostMap[software]}된 게시글`, url: `/home/posts/${sortBy}`, icon: Repeat2, count: postsCount },
   ]
 
   return (
