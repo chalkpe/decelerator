@@ -1,10 +1,11 @@
 import { prisma } from '@decelerator/database'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createRestAPIClient } from 'masto'
-import { useEffect } from 'react'
+import { Suspense } from 'react'
 import { useForm } from 'react-hook-form'
-import { Form as RouterForm, redirect, useNavigate, useSubmit } from 'react-router'
+import { Form as RouterForm, redirect, useSubmit } from 'react-router'
 import { z } from 'zod'
+import { HomeSessionSelector } from '~/components/home-session-selector'
 import { Button } from '~/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
@@ -23,18 +24,11 @@ const formSchema = z.object({
 })
 
 export default function Home() {
-  const navigate = useNavigate()
-  const { data: session, isPending } = authClient.useSession()
-
   const form = useForm<z.infer<typeof formSchema>>({
     mode: 'onSubmit',
     resolver: zodResolver(formSchema),
     defaultValues: { domain: '' },
   })
-
-  useEffect(() => {
-    if (!isPending && session) navigate('/home')
-  }, [session, isPending, navigate])
 
   const submit = useSubmit()
   const onSubmit = form.handleSubmit(async (_, event) => {
@@ -68,6 +62,21 @@ export default function Home() {
                 <Button type="submit" className="w-full">
                   로그인
                 </Button>
+
+                <Suspense fallback={null}>
+                  <HomeSessionSelector
+                    promise={authClient.multiSession.listDeviceSessions().then(({ data, error }) =>
+                      error
+                        ? []
+                        : data.map((session) => ({
+                            id: session.user.id,
+                            image: session.user.image ?? '',
+                            name: session.user.name,
+                            sessionToken: session.session.token,
+                          })),
+                    )}
+                  />
+                </Suspense>
               </div>
             </RouterForm>
           </Form>

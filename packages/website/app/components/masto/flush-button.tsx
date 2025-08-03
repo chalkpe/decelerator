@@ -3,6 +3,7 @@ import { useRevalidator } from 'react-router'
 import type InfiniteLoader from 'react-window-infinite-loader'
 import { Button } from '~/components/ui/button'
 import { useFlush } from '~/hooks/use-flush'
+import { useIsMobile } from '~/hooks/use-mobile'
 import { cn } from '~/lib/utils'
 
 interface FlushButtonProps {
@@ -12,6 +13,7 @@ interface FlushButtonProps {
 const FlushButton = ({ infiniteLoaderRef }: FlushButtonProps) => {
   const { current, flush } = useFlush()
   const revalidator = useRevalidator()
+  const isMobile = useIsMobile()
 
   return (
     <Button
@@ -24,7 +26,9 @@ const FlushButton = ({ infiniteLoaderRef }: FlushButtonProps) => {
       className={cn(current.length > 0 && 'animate-pulse')}
     >
       <RefreshCw />
-      {current.length > 0 ? <span>새로고침 (+{current.length})</span> : <span>새로고침</span>}
+      {isMobile && current.length > 0 && <span>+{current.length}</span>}
+      {!isMobile && current.length > 0 && <span>새로고침 (+{current.length})</span>}
+      {!isMobile && current.length === 0 && <span>새로고침</span>}
     </Button>
   )
 }

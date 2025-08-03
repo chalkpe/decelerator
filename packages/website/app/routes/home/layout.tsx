@@ -1,9 +1,18 @@
 import { taskQueue } from '@decelerator/core/constants'
 import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
-import { ChevronUp, Home, Loader, Repeat2, User2 } from 'lucide-react'
+import { ChevronUp, Home, Loader, LogOut, Plus, Repeat2 } from 'lucide-react'
+import { Suspense } from 'react'
 import { NavLink, Outlet, redirect, useNavigate } from 'react-router'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
+import { SessionChanger } from '~/components/session-changer'
+import { Avatar, AvatarImage } from '~/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +22,7 @@ import {
   SidebarGroupLabel,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -40,18 +50,29 @@ export async function loader({ request }: Route.LoaderArgs) {
     args: [{ domain: app.domain, software: app.software }],
   })
 
-  return { software: app.software }
+  const { domain, mastodonId: userId } = session.user
+
+  const [timelineCount, postsCount] = await Promise.all([
+    prisma.userReaction.count({
+      where: { domain, status: { accountId: userId } },
+    }),
+    prisma.statusIndex.count({
+      where: { domain, accountId: userId, referenced: { some: {} } },
+    }),
+  ])
+
+  return { software: app.software, timelineCount, postsCount }
 }
 
 export default function HomeLayout({ loaderData }: Route.ComponentProps) {
-  const { software } = loaderData
+  const { software, timelineCount, postsCount } = loaderData
 
   const navigate = useNavigate()
   const { data: session } = authClient.useSession()
 
   const items = [
-    { title: '반응 타임라인', url: '/home/timeline', icon: Home },
-    { title: `${boostMap[software]}된 게시글`, url: '/home/posts', icon: Repeat2 },
+    { title: '반응 타임라인', url: '/home/timeline', icon: Home, count: timelineCount },
+    { title: `${boostMap[software]}된 게시글`, url: '/home/posts', icon: Repeat2, count: postsCount },
   ]
 
   return (
@@ -66,10 +87,13 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
                   <SidebarMenuItem key={item.title}>
                     <NavLink to={item.url}>
                       {({ isPending }) => (
-                        <SidebarMenuButton>
-                          {isPending ? <Loader className="animate-spin" /> : <item.icon />}
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
+                        <>
+                          <SidebarMenuButton>
+                            {isPending ? <Loader className="animate-spin" /> : <item.icon />}
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                          <SidebarMenuBadge>{item.count}</SidebarMenuBadge>
+                        </>
                       )}
                     </NavLink>
                   </SidebarMenuItem>
@@ -83,15 +107,52 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild style={{ padding: '0 !important' }}>
                   <SidebarMenuButton>
-                    <User2 /> {session?.user?.name}
+                    <Avatar>
+                      <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? 'User Avatar'} />
+                    </Avatar>
+                    {session?.user?.name}
                     <ChevronUp className="ml-auto" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                  <DropdownMenuItem onClick={() => navigate('/')}>
+                    <span>
+                      <Plus className="mr-2 inline" />
+                      계정 추가
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <Suspense
+                    fallback={
+                      <DropdownMenuItem disabled>
+                        <span>
+                          <Loader className="mr-2 inline animate-spin" />
+                          계정 불러오는 중...
+                        </span>
+                      </DropdownMenuItem>
+                    }
+                  >
+                    <SessionChanger
+                      promise={authClient.multiSession.listDeviceSessions().then(({ data, error }) =>
+                        error
+                          ? []
+                          : data.map((session) => ({
+                              id: session.user.id,
+                              name: session.user.name,
+                              image: session.user.image ?? '',
+                              sessionToken: session.session.token,
+                            })),
+                      )}
+                    />
+                  </Suspense>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => authClient.signOut().then(() => navigate('/'))}>
-                    <span>로그아웃</span>
+                    <span>
+                      <LogOut className="mr-2 inline" />
+                      전부 로그아웃
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

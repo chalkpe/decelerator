@@ -1,7 +1,7 @@
 import { prisma } from '@decelerator/database'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { type GenericOAuthConfig, genericOAuth } from 'better-auth/plugins'
+import { type GenericOAuthConfig, genericOAuth, multiSession } from 'better-auth/plugins'
 import { api } from 'misskey-js'
 import { permissions, scopes } from '~/lib/masto'
 import pkg from '../../../../package.json'
@@ -69,6 +69,7 @@ export async function createAuth() {
             }) satisfies GenericOAuthConfig,
         ),
       }),
+      multiSession({ maximumSessions: 16 }),
     ],
   })
 }

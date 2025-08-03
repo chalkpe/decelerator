@@ -2,6 +2,7 @@ import type { ServerSoftware } from '@decelerator/database'
 import { Clock4 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { useIsMobile } from '~/hooks/use-mobile'
 import { boostMap } from '~/lib/masto'
 
 interface TimeoutSelectProps {
@@ -11,6 +12,8 @@ interface TimeoutSelectProps {
 }
 
 const TimeoutSelect = ({ timeout, setTimeout, software }: TimeoutSelectProps) => {
+  const isMobile = useIsMobile()
+
   const options = [
     { label: '30초', value: 1000 * 30 },
     { label: '1분', value: 1000 * 60 },
@@ -24,7 +27,8 @@ const TimeoutSelect = ({ timeout, setTimeout, software }: TimeoutSelectProps) =>
       <Tooltip>
         <TooltipTrigger>
           <SelectTrigger className="w-full">
-            <Clock4 /> <SelectValue placeholder="선택" />
+            <Clock4 />
+            {!isMobile && <SelectValue placeholder="선택" />}
           </SelectTrigger>
         </TooltipTrigger>
         <TooltipContent>

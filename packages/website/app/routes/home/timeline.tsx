@@ -16,6 +16,7 @@ import {
   StatusCardTitle,
 } from '~/components/masto/status-card'
 import { TimeoutSelect } from '~/components/masto/timeout-select'
+import { MobileSidebarTrigger } from '~/components/mobile-sidebar-trigger'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { mutualModeAtom, timeoutAtom } from '~/stores/filter'
@@ -137,6 +138,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col items-stretch flex-auto">
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
+          <MobileSidebarTrigger />
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={loaderData.software} />
         </nav>

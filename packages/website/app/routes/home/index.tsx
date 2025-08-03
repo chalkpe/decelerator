@@ -1,6 +1,7 @@
 import { prisma } from '@decelerator/database'
 import { ExternalLink, Home, Repeat2, ThumbsUp } from 'lucide-react'
 import { NavLink, redirect } from 'react-router'
+import { MobileSidebarTrigger } from '~/components/mobile-sidebar-trigger'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
@@ -32,6 +33,7 @@ export default function HomeIndex({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col items-stretch flex-auto" suppressHydrationWarning>
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
+          <MobileSidebarTrigger />
           <span className="text-2xl font-bold">{pkg.displayName}</span>
         </nav>
         <nav className="flex items-center gap-2">
