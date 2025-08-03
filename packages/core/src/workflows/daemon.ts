@@ -63,7 +63,11 @@ export async function daemonWorkflow({ domain, software, queue: _queue }: Daemon
     while (true) {
       if (workflowInfo().continueAsNewSuggested) {
         // 지금까지의 큐 내용을 넘기면서 새로 시작
-        return await continueAsNew({ domain, queue: queue.toArray() })
+        return await continueAsNew<typeof daemonWorkflow>({
+          domain,
+          software,
+          queue: queue.toArray(),
+        })
       }
 
       const current = queue.shift()
