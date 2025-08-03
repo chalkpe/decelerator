@@ -95,7 +95,7 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
                             {isPending ? <Loader className="animate-spin" /> : <item.icon />}
                             <span>{item.title}</span>
                           </SidebarMenuButton>
-                          <SidebarMenuBadge>{item.count}</SidebarMenuBadge>
+                          <SidebarMenuBadge>{item.count.toLocaleString()}</SidebarMenuBadge>
                         </>
                       )}
                     </NavLink>

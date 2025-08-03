@@ -5,6 +5,7 @@ import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
+import { FoodIcon } from '~/components/food-icon'
 import {
   StatusCard,
   StatusCardAction,
@@ -185,6 +186,12 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
             </InfiniteLoader>
           )}
         </AutoSizer>
+        {userReactions.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 h-full">
+            <FoodIcon className="size-10" />
+            <span className="text-lg">아직 반응이 없습니다.</span>
+          </div>
+        )}
       </div>
     </div>
   )
