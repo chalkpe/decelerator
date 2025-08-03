@@ -48,17 +48,23 @@ export async function loader({ request }: Route.LoaderArgs) {
       where: { domain, accountId: userId, referenced: { some: {} } },
     }),
   ])
-  return { data, totalCount, domain: app.domain, software: app.software }
+  return { data, totalCount, domain: app.domain, software: app.software, timestamp }
 }
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
-  const { data, totalCount, domain, software } = loaderData
+  const { data, totalCount, domain, software, timestamp } = loaderData
   const fetcher = useFetcher<typeof loader>()
+
   const [statuses, setStatuses] = useState<typeof data>(data)
   useEffect(() => {
     const { data, state } = fetcher
     if (state === 'idle' && data) setStatuses((prev) => [...prev, ...data.data])
   }, [fetcher])
+
+  // timestamp가 없다는 건 첫 로드 또는 새로고침한 경우이므로 리스트 초기화
+  useEffect(() => {
+    if (!timestamp) setStatuses(data)
+  }, [timestamp, data])
 
   const isItemLoaded = useCallback((index: number) => index < statuses.length, [statuses.length])
   const loadMoreItems = useCallback(async () => {
@@ -77,12 +83,12 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
   const listRef = useRef<List>(null)
   const infiniteLoaderRef = useRef<InfiniteLoader>(null)
 
-  const cardsRef = useRef<Record<string, HTMLElement | null>>({})
-  const sizesRef = useRef<Record<string, number>>({})
+  const cardsRef = useRef(new WeakMap<(typeof data)[number], HTMLElement | null>())
+  const sizesRef = useRef(new WeakMap<(typeof data)[number], number>())
 
   const posts = useMemo(
     () =>
-      statuses.sort((a, b) => {
+      [...statuses].sort((a, b) => {
         const boost = b.referenced.length - a.referenced.length
         const createdAt = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         return sortBy === 'boost' ? boost || createdAt : createdAt || boost
@@ -90,35 +96,33 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     [statuses, sortBy],
   )
 
-  const Row = ({ index }: { index: number }) => {
-    const status = posts[index]
-
+  const Row = ({ index, status }: { index: number; status: (typeof data)[number] }) => {
     const referenced = status.referenced.filter(
       ({ createdAt, reactedAt, fromMutual }) => filterTimeout(timeout, createdAt, reactedAt) && filterMutualMode(mutualMode, fromMutual),
     )
 
     useEffect(() => {
-      const height = cardsRef.current[status.statusId]?.getBoundingClientRect().height
+      const height = cardsRef.current.get(status)?.getBoundingClientRect().height
       if (typeof height === 'number') {
-        sizesRef.current[index] = height
+        sizesRef.current.set(status, height)
         listRef.current?.resetAfterIndex(index)
       }
-    }, [index, status])
+    }, [status, index])
 
     const resize = useCallback(() => {
-      const height = cardsRef.current[status.statusId]?.getBoundingClientRect().height
+      const height = cardsRef.current.get(status)?.getBoundingClientRect().height
       if (typeof height === 'number') {
-        sizesRef.current[index] = height
+        sizesRef.current.set(status, height)
         listRef.current?.resetAfterIndex(index)
       }
-    }, [index, status])
+    }, [status, index])
 
     return (
       <div
         key={status.statusId}
         className="pt-6 pl-6 pr-6"
         ref={(el) => {
-          cardsRef.current[status.statusId] = el
+          cardsRef.current.set(status, el)
         }}
       >
         <StatusCard status={status.data} domain={domain} software={software} resize={resize} className="border-2 border-accent-foreground">
@@ -161,7 +165,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
           <TimelineSortBySelect sortBy={sortBy} setSortBy={setSortBy} listRef={listRef} />
         </nav>
-        <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
+        <FlushButton listRef={listRef} infiniteLoaderRef={infiniteLoaderRef} />
       </header>
       <ScrollToTopButton listRef={listRef} />
       <div className="flex-auto">
@@ -177,12 +181,12 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
                   width={width}
                   height={height}
                   itemCount={posts.length}
-                  itemSize={(index) => sizesRef.current[index] ?? 100}
+                  itemSize={(index) => sizesRef.current.get(posts[index]) ?? 100}
                   onItemsRendered={onItemsRendered}
                 >
                   {({ index, style }) => (
-                    <div key={index} style={style}>
-                      <Row index={index} />
+                    <div style={style}>
+                      <Row index={index} status={posts[index]} />
                     </div>
                   )}
                 </List>

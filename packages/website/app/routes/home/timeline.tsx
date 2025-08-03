@@ -53,19 +53,24 @@ export async function loader({ request }: Route.LoaderArgs) {
     totalCount,
     domain: app.domain,
     software: app.software,
+    timestamp,
   }
 }
 
 export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
+  const { data, totalCount, domain, software, timestamp } = loaderData
   const fetcher = useFetcher<typeof loader>()
-  const [userReactions, setUserReactions] = useState<typeof loaderData.data>(loaderData.data)
+
+  const [userReactions, setUserReactions] = useState<typeof data>(data)
   useEffect(() => {
     const { data, state } = fetcher
     if (state === 'idle' && data) setUserReactions((prev) => [...prev, ...data.data])
   }, [fetcher])
 
-  const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
-  const [timeout, setTimeout] = useAtom(timeoutAtom)
+  // timestamp가 없다는 건 첫 로드 또는 새로고침한 경우이므로 리스트 초기화
+  useEffect(() => {
+    if (!timestamp) setUserReactions(data)
+  }, [timestamp, data])
 
   const isItemLoaded = useCallback((index: number) => index < userReactions.length, [userReactions.length])
   const loadMoreItems = useCallback(async () => {
@@ -77,36 +82,39 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
     return await fetcher.load(`/home/timeline?timestamp=${lastNotification.createdAt.toISOString()}`)
   }, [fetcher, userReactions])
 
+  const [mutualMode, setMutualMode] = useAtom(mutualModeAtom)
+  const [timeout, setTimeout] = useAtom(timeoutAtom)
+
   const listRef = useRef<List>(null)
   const infiniteLoaderRef = useRef<InfiniteLoader>(null)
 
-  const cardsRef = useRef<Record<string, HTMLDivElement | null>>({})
-  const sizesRef = useRef<Record<string, number>>({})
+  const cardsRef = useRef(new WeakMap<(typeof data)[number], HTMLElement | null>())
+  const sizesRef = useRef(new WeakMap<(typeof data)[number], number>())
 
-  const Row = ({ index }: { index: number }) => {
-    const { createdAt, reactedAt, notificationId, status, reaction, fromMutual } = userReactions[index]
+  const Row = ({ index, userReaction }: { index: number; userReaction: (typeof data)[number] }) => {
+    const { createdAt, reactedAt, notificationId, status, reaction, fromMutual } = userReaction
 
     useEffect(() => {
-      const height = cardsRef.current[notificationId]?.getBoundingClientRect().height
+      const height = cardsRef.current.get(userReaction)?.getBoundingClientRect().height
       if (typeof height === 'number') {
-        sizesRef.current[index] = height
+        sizesRef.current.set(userReaction, height)
         listRef.current?.resetAfterIndex(index)
       }
-    }, [index, notificationId])
+    }, [index, userReaction])
 
     const resize = useCallback(() => {
-      const height = cardsRef.current[notificationId]?.getBoundingClientRect().height
+      const height = cardsRef.current.get(userReaction)?.getBoundingClientRect().height
       if (typeof height === 'number') {
-        sizesRef.current[index] = height
+        sizesRef.current.set(userReaction, height)
         listRef.current?.resetAfterIndex(index)
       }
-    }, [index, notificationId])
+    }, [index, userReaction])
 
     if (!filterTimeout(timeout, createdAt, reactedAt) || !filterMutualMode(mutualMode, fromMutual)) {
       return (
         <div
           ref={(el) => {
-            cardsRef.current[notificationId] = el
+            cardsRef.current.set(userReaction, el)
           }}
         />
       )
@@ -116,17 +124,17 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       <div
         className="pl-6 pr-6 pt-6"
         ref={(el) => {
-          cardsRef.current[notificationId] = el
+          cardsRef.current.set(userReaction, el)
         }}
       >
-        <StatusCard key={notificationId} status={reaction.data} domain={loaderData.domain} software={loaderData.software} resize={resize}>
+        <StatusCard key={notificationId} status={reaction.data} domain={domain} software={software} resize={resize}>
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />
             <StatusCardAction />
           </CardHeader>
           <StatusCardContent>
-            <StatusCard status={status.data} domain={loaderData.domain} software={loaderData.software} resize={resize}>
+            <StatusCard status={status.data} domain={domain} software={software} resize={resize}>
               <CardHeader>
                 <StatusCardTitle />
                 <StatusCardDescription />
@@ -146,20 +154,15 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
         <nav className="flex items-center gap-2">
           <MobileSidebarTrigger />
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
-          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={loaderData.software} />
+          <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
         </nav>
-        <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
+        <FlushButton listRef={listRef} infiniteLoaderRef={infiniteLoaderRef} />
       </header>
       <ScrollToTopButton listRef={listRef} />
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (
-            <InfiniteLoader
-              ref={infiniteLoaderRef}
-              isItemLoaded={isItemLoaded}
-              itemCount={loaderData.totalCount}
-              loadMoreItems={loadMoreItems}
-            >
+            <InfiniteLoader ref={infiniteLoaderRef} isItemLoaded={isItemLoaded} itemCount={totalCount} loadMoreItems={loadMoreItems}>
               {({ onItemsRendered, ref }) => (
                 <List
                   ref={(el) => {
@@ -169,12 +172,12 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
                   width={width}
                   height={height}
                   itemCount={userReactions.length}
-                  itemSize={(index) => sizesRef.current[index] ?? 100}
+                  itemSize={(index) => sizesRef.current.get(userReactions[index]) ?? 100}
                   onItemsRendered={onItemsRendered}
                 >
                   {({ index, style }) => (
                     <div style={style}>
-                      <Row index={index} />
+                      <Row index={index} userReaction={userReactions[index]} />
                     </div>
                   )}
                 </List>
