@@ -15,13 +15,13 @@ import {
 } from '~/components/masto/status-card'
 import { FlushButton } from '~/components/nav/flush-button'
 import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
-import { MutualSelect } from '~/components/nav/mutual-select'
+import { filterMutualMode, MutualSelect } from '~/components/nav/mutual-select'
 import { ScrollToTopButton } from '~/components/nav/scroll-to-top-button'
-import { TimeoutSelect } from '~/components/nav/timeout-select'
+import { TimelineSortBySelect } from '~/components/nav/timeline-sort-by-select'
+import { filterTimeout, TimeoutSelect } from '~/components/nav/timeout-select'
 import { CardHeader } from '~/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { createAuth } from '~/lib/auth.server'
-import { mutualModeAtom, type TimelineSortBy, timelineSortByAtom, timeoutAtom } from '~/stores/filter'
+import { mutualModeAtom, timelineSortByAtom, timeoutAtom } from '~/stores/filter'
 import type { Route } from './+types/posts'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -94,9 +94,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     const status = posts[index]
 
     const referenced = status.referenced.filter(
-      ({ createdAt, reactedAt, fromMutual }) =>
-        reactedAt.getTime() - createdAt.getTime() <= timeout &&
-        (mutualMode === 'all' || (mutualMode === 'foreigner' && !fromMutual) || (mutualMode === 'mutual' && fromMutual)),
+      ({ createdAt, reactedAt, fromMutual }) => filterTimeout(timeout, createdAt, reactedAt) && filterMutualMode(mutualMode, fromMutual),
     )
 
     useEffect(() => {
@@ -153,15 +151,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <MobileSidebarTrigger />
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
-          <Select value={sortBy} onValueChange={(s) => setSortBy(s as TimelineSortBy)}>
-            <SelectTrigger>
-              <SelectValue placeholder="정렬" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">최신순</SelectItem>
-              <SelectItem value="boost">인기순</SelectItem>
-            </SelectContent>
-          </Select>
+          <TimelineSortBySelect sortBy={sortBy} setSortBy={setSortBy} listRef={listRef} />
         </nav>
         <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
       </header>

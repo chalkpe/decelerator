@@ -20,6 +20,7 @@ const TimeoutSelect = ({ timeout, setTimeout, software }: TimeoutSelectProps) =>
     { label: '2분', value: 1000 * 60 * 2 },
     { label: '5분', value: 1000 * 60 * 5 },
     { label: '10분', value: 1000 * 60 * 10 },
+    { label: '무제한', value: 0 },
   ]
 
   return (
@@ -47,4 +48,8 @@ const TimeoutSelect = ({ timeout, setTimeout, software }: TimeoutSelectProps) =>
   )
 }
 
-export { TimeoutSelect }
+function filterTimeout(timeout: number, createdAt: Date, reactedAt: Date): boolean {
+  return timeout === 0 || reactedAt.getTime() - createdAt.getTime() <= timeout
+}
+
+export { TimeoutSelect, filterTimeout }

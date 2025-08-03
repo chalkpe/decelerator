@@ -15,9 +15,9 @@ import {
 } from '~/components/masto/status-card'
 import { FlushButton } from '~/components/nav/flush-button'
 import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
-import { MutualSelect } from '~/components/nav/mutual-select'
+import { filterMutualMode, MutualSelect } from '~/components/nav/mutual-select'
 import { ScrollToTopButton } from '~/components/nav/scroll-to-top-button'
-import { TimeoutSelect } from '~/components/nav/timeout-select'
+import { filterTimeout, TimeoutSelect } from '~/components/nav/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { mutualModeAtom, timeoutAtom } from '~/stores/filter'
@@ -94,10 +94,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       }
     }, [index, notificationId])
 
-    const timeoutError = reactedAt.getTime() - createdAt.getTime() > timeout
-    const mutualModeError = (mutualMode === 'foreigner' && fromMutual) || (mutualMode === 'mutual' && !fromMutual)
-
-    if (timeoutError || mutualModeError) {
+    if (!filterTimeout(timeout, createdAt, reactedAt) || !filterMutualMode(mutualMode, fromMutual)) {
       return (
         <div
           ref={(el) => {

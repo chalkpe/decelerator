@@ -40,4 +40,8 @@ const MutualSelect = ({ mutualMode, setMutualMode }: { mutualMode: MutualMode; s
   )
 }
 
-export { MutualSelect }
+function filterMutualMode(mutualMode: MutualMode, fromMutual: boolean): boolean {
+  return mutualMode === 'all' || (mutualMode === 'mutual' && fromMutual) || (mutualMode === 'foreigner' && !fromMutual)
+}
+
+export { MutualSelect, filterMutualMode }
