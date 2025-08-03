@@ -5,8 +5,6 @@ import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
-import { FlushButton } from '~/components/masto/flush-button'
-import { MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
   StatusCardAction,
@@ -15,8 +13,11 @@ import {
   StatusCardDescriptionWithTimeout,
   StatusCardTitle,
 } from '~/components/masto/status-card'
-import { TimeoutSelect } from '~/components/masto/timeout-select'
-import { MobileSidebarTrigger } from '~/components/mobile-sidebar-trigger'
+import { FlushButton } from '~/components/nav/flush-button'
+import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
+import { MutualSelect } from '~/components/nav/mutual-select'
+import { ScrollToTopButton } from '~/components/nav/scroll-to-top-button'
+import { TimeoutSelect } from '~/components/nav/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { createAuth } from '~/lib/auth.server'
 import { mutualModeAtom, timeoutAtom } from '~/stores/filter'
@@ -67,13 +68,13 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
   const [timeout, setTimeout] = useAtom(timeoutAtom)
 
   const isItemLoaded = useCallback((index: number) => index < userReactions.length, [userReactions.length])
-  const loadMoreItems = useCallback(() => {
+  const loadMoreItems = useCallback(async () => {
     if (fetcher.state !== 'idle') return
 
     const lastNotification = userReactions.at(-1)
     if (!lastNotification) return
 
-    return fetcher.load(`/home/timeline?timestamp=${lastNotification.createdAt.toISOString()}`)
+    return await fetcher.load(`/home/timeline?timestamp=${lastNotification.createdAt.toISOString()}`)
   }, [fetcher, userReactions])
 
   const listRef = useRef<List>(null)
@@ -144,6 +145,7 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
         </nav>
         <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
       </header>
+      <ScrollToTopButton listRef={listRef} />
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (

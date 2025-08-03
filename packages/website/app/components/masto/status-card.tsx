@@ -5,6 +5,7 @@ import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardTitle } from '~/components/ui/card'
 import { ScrollArea, ScrollBar } from '~/components/ui/scroll-area'
+import { useIsMobile } from '~/hooks/use-mobile'
 import { boostMap, sanitizeContent } from '~/lib/masto'
 import { cn, formatDistance } from '~/lib/utils'
 
@@ -38,35 +39,30 @@ const StatusCardTitle: FC<ComponentProps<'div'>> = ({ children, className, ...pr
 
 const divider = (key: Key) => <Fragment key={key}>&nbsp;&middot;&nbsp;</Fragment>
 
+const visibilityIconClassName = 'size-4 inline align-sub mr-0.5'
+const visibilityMap = {
+  public: {
+    icon: <Globe className={visibilityIconClassName} />,
+    label: '공개',
+  },
+  unlisted: {
+    icon: <Moon className={visibilityIconClassName} />,
+    label: '조용한 공개',
+  },
+  private: {
+    icon: <Lock className={visibilityIconClassName} />,
+    label: '팔로워',
+  },
+  direct: {
+    icon: <Mail className={visibilityIconClassName} />,
+    label: '개인 멘션',
+  },
+}
+
 const VisibilityIcon: FC<{ visibility: PrismaJson.StatusIndexData['visibility'] }> = ({ visibility }) => {
-  const className = 'size-4 inline align-sub mr-0.5'
-  const icons = {
-    public: (
-      <>
-        <Globe className={className} />
-        공개
-      </>
-    ),
-    unlisted: (
-      <>
-        <Moon className={className} />
-        조용한 공개
-      </>
-    ),
-    private: (
-      <>
-        <Lock className={className} />
-        팔로워
-      </>
-    ),
-    direct: (
-      <>
-        <Mail className={className} />
-        개인 멘션
-      </>
-    ),
-  }
-  return icons[visibility]
+  const isMobile = useIsMobile()
+  const v = visibilityMap[visibility]
+  return isMobile ? v.icon : [v.icon, ' ', v.label]
 }
 
 const StatusCardDescription: FC<ComponentProps<'div'>> = ({ children, ...props }) => {

@@ -1,7 +1,7 @@
 import { prisma } from '@decelerator/database'
 import { ExternalLink, Home, Repeat2, ThumbsUp } from 'lucide-react'
 import { NavLink, redirect } from 'react-router'
-import { MobileSidebarTrigger } from '~/components/mobile-sidebar-trigger'
+import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'

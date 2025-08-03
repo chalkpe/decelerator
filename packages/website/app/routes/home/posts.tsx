@@ -1,12 +1,10 @@
 import { prisma } from '@decelerator/database'
 import { useAtom } from 'jotai/react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
-import { FlushButton } from '~/components/masto/flush-button'
-import { MutualSelect } from '~/components/masto/mutual-select'
 import {
   StatusCard,
   StatusCardAction,
@@ -15,8 +13,11 @@ import {
   StatusCardDescriptionWithTimeout,
   StatusCardTitle,
 } from '~/components/masto/status-card'
-import { TimeoutSelect } from '~/components/masto/timeout-select'
-import { MobileSidebarTrigger } from '~/components/mobile-sidebar-trigger'
+import { FlushButton } from '~/components/nav/flush-button'
+import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
+import { MutualSelect } from '~/components/nav/mutual-select'
+import { ScrollToTopButton } from '~/components/nav/scroll-to-top-button'
+import { TimeoutSelect } from '~/components/nav/timeout-select'
 import { CardHeader } from '~/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { createAuth } from '~/lib/auth.server'
@@ -36,7 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const timestamp = searchParams.get('timestamp')
   const createdAt = timestamp ? { lt: new Date(timestamp) } : undefined
 
-  const [statuses, totalCount] = await Promise.all([
+  const [data, totalCount] = await Promise.all([
     prisma.statusIndex.findMany({
       where: { domain, accountId: userId, referenced: { some: {} }, createdAt },
       orderBy: { createdAt: 'desc' },
@@ -47,21 +48,26 @@ export async function loader({ request }: Route.LoaderArgs) {
       where: { domain, accountId: userId, referenced: { some: {} } },
     }),
   ])
-  return { statuses, totalCount, domain: app.domain, software: app.software }
+  return { data, totalCount, domain: app.domain, software: app.software }
 }
 
 export default function HomePosts({ loaderData }: Route.ComponentProps) {
-  const { statuses, totalCount, domain, software } = loaderData
-
+  const { data, totalCount, domain, software } = loaderData
   const fetcher = useFetcher<typeof loader>()
+  const [statuses, setStatuses] = useState<typeof data>(data)
+  useEffect(() => {
+    const { data, state } = fetcher
+    if (state === 'idle' && data) setStatuses((prev) => [...prev, ...data.data])
+  }, [fetcher])
+
   const isItemLoaded = useCallback((index: number) => index < statuses.length, [statuses.length])
-  const loadMoreItems = useCallback(() => {
+  const loadMoreItems = useCallback(async () => {
     if (fetcher.state !== 'idle') return
 
     const lastStatus = statuses.at(-1)
     if (!lastStatus) return
 
-    return fetcher.load(`/home/posts?timestamp=${lastStatus.createdAt.toISOString()}`)
+    return await fetcher.load(`/home/posts?timestamp=${lastStatus.createdAt.toISOString()}`)
   }, [fetcher, statuses])
 
   const [sortBy, setSortBy] = useAtom(timelineSortByAtom)
@@ -159,6 +165,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
         </nav>
         <FlushButton infiniteLoaderRef={infiniteLoaderRef} />
       </header>
+      <ScrollToTopButton listRef={listRef} />
       <div className="flex-auto">
         <AutoSizer>
           {({ width, height }) => (
