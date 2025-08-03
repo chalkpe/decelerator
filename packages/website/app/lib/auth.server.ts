@@ -27,6 +27,7 @@ export async function createAuth() {
               clientId: app.clientId,
               clientSecret: app.clientSecret,
               redirectURI: app.redirectUri,
+              overrideUserInfo: true,
               ...(app.software === 'MISSKEY'
                 ? ({
                     pkce: true,
