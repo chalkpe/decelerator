@@ -13,6 +13,7 @@ declare global {
       visibility: 'public' | 'unlisted' | 'private' | 'direct'
       account: { acct: string; avatar: string; displayName: string; emojis: CustomEmoji[] }
       content: string
+      spoilerText?: string
       emojis: CustomEmoji[]
       mediaAttachments: { id: string; url: string; description: string }[]
     }

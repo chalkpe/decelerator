@@ -94,6 +94,14 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
       }
     }, [index, notificationId])
 
+    const resize = useCallback(() => {
+      const height = cardsRef.current[notificationId]?.getBoundingClientRect().height
+      if (typeof height === 'number') {
+        sizesRef.current[index] = height
+        listRef.current?.resetAfterIndex(index)
+      }
+    }, [index, notificationId])
+
     if (!filterTimeout(timeout, createdAt, reactedAt) || !filterMutualMode(mutualMode, fromMutual)) {
       return (
         <div
@@ -111,14 +119,14 @@ export default function HomeTimeline({ loaderData }: Route.ComponentProps) {
           cardsRef.current[notificationId] = el
         }}
       >
-        <StatusCard key={notificationId} status={reaction.data} domain={loaderData.domain} software={loaderData.software}>
+        <StatusCard key={notificationId} status={reaction.data} domain={loaderData.domain} software={loaderData.software} resize={resize}>
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />
             <StatusCardAction />
           </CardHeader>
           <StatusCardContent>
-            <StatusCard status={status.data} domain={loaderData.domain} software={loaderData.software}>
+            <StatusCard status={status.data} domain={loaderData.domain} software={loaderData.software} resize={resize}>
               <CardHeader>
                 <StatusCardTitle />
                 <StatusCardDescription />

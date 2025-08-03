@@ -1,4 +1,4 @@
-import { prisma, type ServerSoftware } from '@decelerator/database'
+import { prisma, type ServerSoftware, type StatusIndexCreateInput, type StatusIndexUpsertArgs } from '@decelerator/database'
 import { sleep } from '@temporalio/activity'
 import { createRestAPIClient } from 'masto'
 import type { CustomEmoji } from 'masto/mastodon/entities/v1/custom-emoji.js'
@@ -25,6 +25,7 @@ function createDataFromMasto(status: Status): PrismaJson.StatusIndexData {
       emojis: status.account.emojis.map(createCustomEmojiFromMasto),
     },
     content: status.content,
+    spoilerText: status.spoilerText ?? undefined,
     emojis: status.emojis.map(createCustomEmojiFromMasto),
     mediaAttachments: status.mediaAttachments.map((attachment) => ({
       id: attachment.id,
@@ -57,6 +58,7 @@ function createDataFromMisskey(note: Note): PrismaJson.StatusIndexData {
       emojis: createCustomEmojisFromMisskey(note.user.emojis),
     },
     content: note.text ?? '',
+    spoilerText: note.cw ?? undefined,
     emojis: createCustomEmojisFromMisskey(note.emojis ?? {}),
     mediaAttachments: note.files?.map((file) => ({ id: file.id, url: file.url ?? '', description: file.comment ?? '' })) ?? [],
   }
@@ -85,9 +87,8 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
         .$select(accountId)
         .statuses.list({ excludeReplies: true, excludeReblogs: false, minId, maxId })
 
-      const { count } = await prisma.statusIndex.createMany({
-        skipDuplicates: true,
-        data: statuses.flatMap((status) => [
+      const upsertArgs: StatusIndexUpsertArgs[] = statuses
+        .flatMap<StatusIndexCreateInput>((status) => [
           {
             domain,
             statusId: status.id,
@@ -108,11 +109,17 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
                 },
               ]
             : []),
-        ]),
-      })
+        ])
+        .map((input) => ({
+          create: input,
+          update: { data: input.data },
+          where: { domain_statusId: { domain: input.domain, statusId: input.statusId } },
+        }))
+
+      for (const upsert of upsertArgs) await prisma.statusIndex.upsert(upsert)
 
       await sleep('3 seconds')
-      return { count }
+      return { count: upsertArgs.length }
     }
 
     case 'MISSKEY': {
@@ -124,10 +131,8 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
         sinceId: minId,
         untilId: maxId,
       })
-
-      const { count } = await prisma.statusIndex.createMany({
-        skipDuplicates: true,
-        data: notes.flatMap((note) => [
+      const upsertArgs: StatusIndexUpsertArgs[] = notes
+        .flatMap<StatusIndexCreateInput>((note) => [
           {
             domain,
             statusId: note.id,
@@ -148,11 +153,17 @@ export async function syncIndexActivity(params: SyncIndexParams): Promise<SyncIn
                 },
               ]
             : []),
-        ]),
-      })
+        ])
+        .map((input) => ({
+          create: input,
+          update: { data: input.data },
+          where: { domain_statusId: { domain: input.domain, statusId: input.statusId } },
+        }))
+
+      for (const upsert of upsertArgs) await prisma.statusIndex.upsert(upsert)
 
       await sleep('3 seconds')
-      return { count }
+      return { count: upsertArgs.length }
     }
   }
 }

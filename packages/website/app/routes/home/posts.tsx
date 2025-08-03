@@ -99,7 +99,15 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
 
     useEffect(() => {
       const height = cardsRef.current[status.statusId]?.getBoundingClientRect().height
-      if (height) {
+      if (typeof height === 'number') {
+        sizesRef.current[index] = height
+        listRef.current?.resetAfterIndex(index)
+      }
+    }, [index, status])
+
+    const resize = useCallback(() => {
+      const height = cardsRef.current[status.statusId]?.getBoundingClientRect().height
+      if (typeof height === 'number') {
         sizesRef.current[index] = height
         listRef.current?.resetAfterIndex(index)
       }
@@ -113,7 +121,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           cardsRef.current[status.statusId] = el
         }}
       >
-        <StatusCard status={status.data} domain={domain} software={software} className="border-2 border-accent-foreground">
+        <StatusCard status={status.data} domain={domain} software={software} resize={resize} className="border-2 border-accent-foreground">
           <CardHeader>
             <StatusCardTitle />
             <StatusCardDescription>
@@ -128,7 +136,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
           <ul className="flex flex-col items-stretch justify-center gap-4 p-6">
             {referenced.map(({ reaction, createdAt, reactedAt }) => (
               <li key={reaction.statusId}>
-                <StatusCard status={reaction.data} domain={domain} software={software}>
+                <StatusCard status={reaction.data} domain={domain} software={software} resize={resize}>
                   <CardHeader>
                     <StatusCardTitle />
                     <StatusCardDescriptionWithTimeout timeout={[createdAt, reactedAt]} />

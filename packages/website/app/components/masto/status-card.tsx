@@ -1,6 +1,6 @@
 import type { ServerSoftware } from '@decelerator/database'
 import { ExternalLink, Globe, Lock, Mail, Moon } from 'lucide-react'
-import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo } from 'react'
+import { Children, type ComponentProps, createContext, type FC, Fragment, type Key, useContext, useMemo, useState } from 'react'
 import { Avatar, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardTitle } from '~/components/ui/card'
@@ -9,7 +9,7 @@ import { useIsMobile } from '~/hooks/use-mobile'
 import { boostMap, sanitizeContent } from '~/lib/masto'
 import { cn, formatDistance } from '~/lib/utils'
 
-type StatusCardContextValue = { status: PrismaJson.StatusIndexData; domain: string; software: ServerSoftware }
+type StatusCardContextValue = { status: PrismaJson.StatusIndexData; domain: string; software: ServerSoftware; resize?: () => void }
 const StatusCardContext = createContext<StatusCardContextValue>({} as StatusCardContextValue)
 
 function useStatusCard() {
@@ -124,15 +124,35 @@ const StatusCardAction: FC<ComponentProps<'div'>> = ({ children, className, ...p
 }
 
 const StatusCardContent: FC<ComponentProps<'div'>> = ({ children, className, ...props }) => {
-  const { status } = useStatusCard()
+  const { status, resize } = useStatusCard()
+  const [hidden, setHidden] = useState(!!status.spoilerText)
 
   const content = useMemo(() => sanitizeContent(status.content, status.emojis, 8), [status])
+  const spoilerText = useMemo(() => status.spoilerText && sanitizeContent(status.spoilerText, status.emojis, 4), [status])
   const mediaAttachments = status.mediaAttachments.flatMap(({ url, ...media }) => (url ? [{ url, ...media }] : []))
 
   return (
     <CardContent className={cn('flex flex-col gap-6', className)} {...props}>
-      {/** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
-      <p className="prose break-all max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+      {!!spoilerText && (
+        <button
+          type="button"
+          className="flex flex-col items-start p-4 rounded-lg gap-2 bg-accent"
+          onClick={() => {
+            setHidden((prev) => !prev)
+            if (resize) setTimeout(resize, 10)
+          }}
+        >
+          {/** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
+          <span className="text-accent-foreground font-bold" dangerouslySetInnerHTML={{ __html: spoilerText }} />
+          <span>{hidden ? '더 보기' : '게시물 숨기기'}</span>
+        </button>
+      )}
+
+      {!hidden && (
+        /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
+        <p className="prose break-all max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+      )}
+
       {mediaAttachments.length > 0 && (
         <ScrollArea>
           <div className="flex flex-nowrap gap-2">
@@ -154,8 +174,8 @@ const StatusCardContent: FC<ComponentProps<'div'>> = ({ children, className, ...
   )
 }
 
-const StatusCard: FC<ComponentProps<'div'> & StatusCardContextValue> = ({ status, domain, software, ...props }) => {
-  const contextValue = useMemo<StatusCardContextValue>(() => ({ status, domain, software }), [status, domain, software])
+const StatusCard: FC<ComponentProps<'div'> & StatusCardContextValue> = ({ status, domain, software, resize, ...props }) => {
+  const contextValue = useMemo<StatusCardContextValue>(() => ({ status, domain, software, resize }), [status, domain, software, resize])
   return (
     <StatusCardContext.Provider value={contextValue}>
       <Card {...props} />
