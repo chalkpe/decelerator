@@ -5,6 +5,7 @@ services:
       - 5432:5432
     networks:
       - internal_network
+    restart: always
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
       interval: 5s
@@ -22,6 +23,7 @@ services:
       - 7233:7233
     networks:
       - internal_network
+    restart: always
     healthcheck:
       test: ['CMD', 'tctl', 'cluster', 'health']
       interval: 5s
@@ -42,6 +44,7 @@ services:
       - 8233:8233
     networks:
       - internal_network
+    restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8233']
       interval: 10s
@@ -60,6 +63,7 @@ services:
       - 5555:5555
     networks:
       - internal_network
+    restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5555']
       interval: 10s
@@ -78,6 +82,7 @@ services:
     networks:
       - internal_network
       - external_network
+    restart: unless-stopped
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - DATABASE_URL=postgres://postgres@postgres:5432/decelerator
@@ -102,6 +107,7 @@ services:
     networks:
       - internal_network
       - external_network
+    restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8234']
       interval: 10s
