@@ -42,7 +42,16 @@ export interface FetchReactionWorkflowInput {
   notificationId: string
 }
 
-export async function fetchReactionWorkflow({ domain, software, notificationId }: FetchReactionWorkflowInput) {
+export interface FetchReactionWorkflowOutput {
+  found: boolean
+  result?: { statusId: string; reactionId: string }
+}
+
+export async function fetchReactionWorkflow({
+  domain,
+  software,
+  notificationId,
+}: FetchReactionWorkflowInput): Promise<FetchReactionWorkflowOutput> {
   // 알림 찾기
   const notification = await findNotification({ where: { domain, notificationId } })
   if (!notification) throw ApplicationFailure.nonRetryable('Notification not found', 'NotificationNotFound')
@@ -52,32 +61,30 @@ export async function fetchReactionWorkflow({ domain, software, notificationId }
   if (!account?.accessToken) throw ApplicationFailure.nonRetryable('Unauthorized', 'Unauthorized')
 
   // 인덱스 동기화
-  const { accountId, statusId: minId, createdAt: gt } = notification
-  await syncIndex({ domain, software, accessToken: account.accessToken, accountId, minId })
+  const { accountId, statusId, createdAt: gt } = notification
+  await syncIndex({ domain, software, accessToken: account.accessToken, accountId, minId: statusId })
 
   // 부스트 인덱스 찾기
-  const reblog = await findIndex({
-    where: { domain, accountId, reblogId: notification.statusId },
-    orderBy: { createdAt: 'asc' },
-  })
-  if (!reblog) throw ApplicationFailure.nonRetryable('Reblog not found', 'ReblogNotFound')
+  const reblog = await findIndex({ where: { domain, accountId, reblogId: statusId }, orderBy: { createdAt: 'asc' } })
+  if (!reblog) return { found: false }
 
   // 반응 인덱스 찾기
   const reaction = await findIndex({ where: { domain, accountId, createdAt: { gt }, reblogId: null }, orderBy: { createdAt: 'asc' } })
-  if (!reaction) throw ApplicationFailure.nonRetryable('Reaction not found', 'ReactionNotFound')
+  if (!reaction) return { found: false }
 
+  // 사용자 반응 매핑 생성
   const { fromMutual } = await fetchRelationships({ domain, software, accessToken: account.accessToken, accountId: reaction.accountId })
-
-  // 알림에 반응 ID 업데이트
-  await createUserReaction({
+  const { reactionId } = await createUserReaction({
     data: {
       domain,
-      statusId: notification.statusId,
+      statusId,
       reactionId: reaction.statusId,
-      notificationId: notification.notificationId,
+      notificationId,
       createdAt: notification.createdAt,
       reactedAt: reaction.createdAt,
       fromMutual,
     },
   })
+
+  return { found: true, result: { statusId, reactionId } }
 }
