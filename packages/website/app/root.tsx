@@ -10,6 +10,7 @@ import pkg from '../../../package.json'
 import type { Route } from './+types/root'
 
 export const links: Route.LinksFunction = () => [
+  { rel: 'manifest', href: '/manifest.json' },
   { rel: 'icon', href: '/favicon.png' },
   { rel: 'apple-touch-icon', href: '/favicon.png' },
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -38,8 +39,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
         <title>{pkg.displayName}</title>
         <meta name="description" content={pkg.description} />
+        <meta name="fediverse:creator" content="@chalk@chalk.moe" />
+
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        <meta name="twitter:image:src" content={`${import.meta.env.VITE_REDIRECT_URL}/card.png`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pkg.displayName} />
+        <meta name="twitter:description" content={pkg.description} />
+
+        <meta property="og:image" content={`${import.meta.env.VITE_REDIRECT_URL}/card.png`} />
+        <meta property="og:image:alt" content={pkg.displayName} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pkg.displayName} />
+        <meta property="og:site_name" content={pkg.displayName} />
+        <meta property="og:url" content={import.meta.env.VITE_REDIRECT_URL} />
+        <meta property="og:description" content={pkg.description} />
+
         <Links />
       </head>
       <body className={cn({ dark })}>

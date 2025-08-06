@@ -17,7 +17,11 @@ export default function MisskeyIntrodution({ params }: Route.ComponentProps) {
     <>
       <link rel="redirect_uri" href={href} />
       <div className="h-app">
-        <img className="u-logo" src="/favicon.png" alt={pkg.displayName} />
+        <img
+          className="p-logo"
+          src={`${import.meta.env.VITE_REDIRECT_URL}/favicon.png`}
+          alt={`${import.meta.env.VITE_REDIRECT_URL}/favicon.png`}
+        />
         <a href={href} className="u-url p-name">
           {pkg.displayName}
         </a>
