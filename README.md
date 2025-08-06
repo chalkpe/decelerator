@@ -1,8 +1,10 @@
-# decelerator
+<div align="center">
 
-내 글을 부스트한 사람들의 반응을 모아주는 서비스
+<img src="./packages/website/public/card_outline.png" alt="디셀러레이터 로고" width="400px" />
 
-![example](docs/example.png)
+**🚀 내 글을 부스트한 사람들의 반응을 모아주는 서비스**
+
+</div>
 
 ## 시작하기
 
