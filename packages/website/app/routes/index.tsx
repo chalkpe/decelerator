@@ -1,11 +1,12 @@
 import { prisma } from '@decelerator/database'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createRestAPIClient } from 'masto'
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { Form as RouterForm, redirect, useSubmit } from 'react-router'
 import { z } from 'zod'
 import { HomeSessionSelector } from '~/components/home-session-selector'
+import { LogoIcon } from '~/components/logo-icon'
 import { Button } from '~/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
@@ -35,6 +36,21 @@ export default function Home() {
     if (event?.target) await submit(event.target)
   })
 
+  const promise = useMemo(
+    () =>
+      authClient.multiSession.listDeviceSessions().then(({ data, error }) =>
+        error
+          ? []
+          : data.map((session) => ({
+              id: session.user.id,
+              image: session.user.image ?? '',
+              name: session.user.name,
+              sessionToken: session.session.token,
+            })),
+      ),
+    [],
+  )
+
   return (
     <div className="flex flex-col gap-6 min-h-svh items-center justify-center p-6 md:p-10 bg-muted">
       <div className="w-full max-w-sm border rounded-lg bg-background">
@@ -42,9 +58,12 @@ export default function Home() {
           <Form {...form}>
             <RouterForm method="post" onSubmit={onSubmit} className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
-                <div className="flex flex-col items-center text-center">
-                  <h1 className="text-2xl font-bold">{pkg.displayName}</h1>
-                  <p className="text-balance text-muted-foreground">{pkg.description}</p>
+                <div className="flex flex-col gap-4 items-center">
+                  <LogoIcon className="size-20" />
+                  <div className="flex flex-col gap-2 items-center text-center">
+                    <h1 className="text-2xl font-bold">{pkg.displayName}</h1>
+                    <p className="text-balance break-keep text-muted-foreground">{pkg.description}</p>
+                  </div>
                 </div>
                 <FormField
                   control={form.control}
@@ -53,7 +72,7 @@ export default function Home() {
                     <FormItem className="grid gap-2">
                       <FormLabel>서버</FormLabel>
                       <FormControl>
-                        <Input placeholder="chalk.moe" {...field} />
+                        <Input placeholder="예시: chalk.moe" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -62,20 +81,8 @@ export default function Home() {
                 <Button type="submit" className="w-full">
                   로그인
                 </Button>
-
                 <Suspense fallback={null}>
-                  <HomeSessionSelector
-                    promise={authClient.multiSession.listDeviceSessions().then(({ data, error }) =>
-                      error
-                        ? []
-                        : data.map((session) => ({
-                            id: session.user.id,
-                            image: session.user.image ?? '',
-                            name: session.user.name,
-                            sessionToken: session.session.token,
-                          })),
-                    )}
-                  />
+                  <HomeSessionSelector promise={promise} />
                 </Suspense>
               </div>
             </RouterForm>
@@ -85,7 +92,7 @@ export default function Home() {
       <footer className="flex flex-col gap-2">
         <div className="text-balance text-center text-xs text-muted-foreground">
           현재{' '}
-          <a href="https://joinmastodon.org/" className="underline underline-offset-4 hover:text-primary">
+          <a href="https://joinmastodon.org" className="underline underline-offset-4 hover:text-primary">
             마스토돈
           </a>{' '}
           및{' '}

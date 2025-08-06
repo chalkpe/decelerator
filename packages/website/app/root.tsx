@@ -1,17 +1,38 @@
 import './app.css'
 
+import { useAtomValue } from 'jotai'
+import { useEffect, useMemo, useState } from 'react'
 import { isRouteErrorResponse, Links, NavLink, Outlet, Scripts, ScrollRestoration } from 'react-router'
 import { Button } from '~/components/ui/button'
+import { cn } from '~/lib/utils'
+import { themeAtom } from '~/stores/appearance'
 import pkg from '../../../package.json'
 import type { Route } from './+types/root'
 
 export const links: Route.LinksFunction = () => [
+  { rel: 'icon', href: '/favicon.png' },
+  { rel: 'apple-touch-icon', href: '/favicon.png' },
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
   { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
   { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;700&display=swap' },
 ]
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const theme = useAtomValue(themeAtom)
+  const [prefersDark, setPrefersDark] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-color-scheme: dark)')
+
+    setPrefersDark(query.matches)
+    const handleChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
+
+    query.addEventListener('change', handleChange)
+    return () => query.removeEventListener('change', handleChange)
+  }, [])
+
+  const dark = useMemo(() => theme === 'dark' || (theme === 'system' && prefersDark), [theme, prefersDark])
+
   return (
     <html lang="ko">
       <head>
@@ -21,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="description" content={pkg.description} />
         <Links />
       </head>
-      <body>
+      <body className={cn({ dark })}>
         {children}
         <ScrollRestoration />
         <Scripts />

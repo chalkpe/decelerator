@@ -1,14 +1,16 @@
 import { MenuIcon } from 'lucide-react'
+import { LogoIcon } from '~/components/logo-icon'
 import { Button } from '~/components/ui/button'
 import { useSidebar } from '~/components/ui/sidebar'
 
-export const MobileSidebarTrigger = () => {
-  const { isMobile, toggleSidebar } = useSidebar()
+export const LogoSidebarTrigger = () => {
+  const { toggleSidebar } = useSidebar()
 
-  if (!isMobile) return null
   return (
     <Button variant="ghost" size="icon" className="size-9" onClick={toggleSidebar}>
-      <MenuIcon />
+      <LogoIcon className="size-7">
+        <MenuIcon />
+      </LogoIcon>
     </Button>
   )
 }

@@ -150,7 +150,7 @@ const StatusCardContent: FC<ComponentProps<'div'>> = ({ children, className, ...
 
       {!hidden && (
         /** biome-ignore lint/security/noDangerouslySetInnerHtml: safe */
-        <p className="prose break-all max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+        <p className="prose dark:prose-invert break-all max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
       )}
 
       {mediaAttachments.length > 0 && (

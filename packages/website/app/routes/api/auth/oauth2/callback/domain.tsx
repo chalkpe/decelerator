@@ -10,12 +10,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return await auth.handler(request)
 }
 
+// 체리픽 서버는 name 및 logo 프로퍼티가 없으면 오류 발생함
 export default function MisskeyIntrodution({ params }: Route.ComponentProps) {
   const href = `/api/auth/oauth2/callback/${params.domain}`
   return (
     <>
       <link rel="redirect_uri" href={href} />
       <div className="h-app">
+        <img className="u-logo" src="/favicon.png" alt={pkg.displayName} />
         <a href={href} className="u-url p-name">
           {pkg.displayName}
         </a>

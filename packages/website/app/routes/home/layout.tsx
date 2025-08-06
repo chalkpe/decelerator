@@ -1,8 +1,8 @@
 import { taskQueue } from '@decelerator/core/constants'
 import type { daemonWorkflow } from '@decelerator/core/workflows'
 import { prisma } from '@decelerator/database'
-import { useAtomValue } from 'jotai'
-import { ChevronUp, Home, Loader, LogOut, Plus, Repeat2 } from 'lucide-react'
+import { useAtom, useAtomValue } from 'jotai'
+import { ChevronUp, Home, Loader, LogOut, Moon, MoonStar, Plus, Repeat2, Sun } from 'lucide-react'
 import { Suspense } from 'react'
 import { NavLink, Outlet, redirect, useNavigate } from 'react-router'
 import { SessionChanger } from '~/components/session-changer'
@@ -33,6 +33,7 @@ import { createAuth } from '~/lib/auth.server'
 import { authClient } from '~/lib/auth-client'
 import { boostMap } from '~/lib/masto'
 import { temporal } from '~/lib/temporal.server'
+import { themeAtom } from '~/stores/appearance'
 import { timelineSortByAtom } from '~/stores/filter'
 import pkg from '../../../../../package.json'
 import type { Route } from './+types/layout'
@@ -78,6 +79,8 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
     { title: `${boostMap[software]}된 게시글`, url: `/home/posts/${sortBy}`, icon: Repeat2, count: postsCount },
   ]
 
+  const [theme, setTheme] = useAtom(themeAtom)
+
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" variant="inset">
@@ -104,13 +107,43 @@ export default function HomeLayout({ loaderData }: Route.ComponentProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>설정</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton>
+                        {theme === 'dark' && <Moon />}
+                        {theme === 'light' && <Sun />}
+                        {theme === 'system' && <MoonStar />}
+                        <span>테마</span>
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                      <DropdownMenuItem onClick={() => setTheme('system')} className={theme === 'system' ? 'bg-accent' : ''}>
+                        <span>시스템</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme('light')} className={theme === 'light' ? 'bg-accent' : ''}>
+                        <span>밝은 테마</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme('dark')} className={theme === 'dark' ? 'bg-accent' : ''}>
+                        <span>어두운 테마</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
           <SidebarGroup />
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild style={{ padding: '0 !important' }}>
+                <DropdownMenuTrigger asChild className="p-0 group-data-[collapsible=icon]:p-0!">
                   <SidebarMenuButton>
                     <Avatar>
                       <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? 'User Avatar'} />

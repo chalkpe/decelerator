@@ -15,7 +15,7 @@ import {
   StatusCardTitle,
 } from '~/components/masto/status-card'
 import { FlushButton } from '~/components/nav/flush-button'
-import { MobileSidebarTrigger } from '~/components/nav/mobile-sidebar-trigger'
+import { LogoSidebarTrigger } from '~/components/nav/logo-sidebar-trigger'
 import { filterMutualMode, MutualSelect } from '~/components/nav/mutual-select'
 import { ScrollToTopButton } from '~/components/nav/scroll-to-top-button'
 import { TimelineSortBySelect } from '~/components/nav/timeline-sort-by-select'
@@ -163,7 +163,7 @@ export default function HomePosts({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col items-stretch flex-auto">
       <header className="flex items-center justify-between bg-background z-20 p-6 shadow">
         <nav className="flex items-center gap-2">
-          <MobileSidebarTrigger />
+          <LogoSidebarTrigger />
           <MutualSelect mutualMode={mutualMode} setMutualMode={setMutualMode} />
           <TimeoutSelect timeout={timeout} setTimeout={setTimeout} software={software} />
           <TimelineSortBySelect sortBy={sortBy} setSortBy={setSortBy} />

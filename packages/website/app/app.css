@@ -128,12 +128,12 @@
 
 @font-face {
   font-family: "FFXIV_Lodestone_SSF";
-  src: url("./fonts/FFXIV_Lodestone_SSF.eot");
+  src: url("/fonts/FFXIV_Lodestone_SSF.eot");
   src:
-    url("./fonts/FFXIV_Lodestone_SSF.eot#iefix") format("eot"),
-    url("./fonts/FFXIV_Lodestone_SSF.woff") format("woff"),
-    url("./fonts/FFXIV_Lodestone_SSF.ttf") format("truetype"),
-    url("./fonts/FFXIV_Lodestone_SSF.svg#FFXIV_Lodestone_SSF") format("svg");
+    url("/fonts/FFXIV_Lodestone_SSF.eot#iefix") format("eot"),
+    url("/fonts/FFXIV_Lodestone_SSF.woff") format("woff"),
+    url("/fonts/FFXIV_Lodestone_SSF.ttf") format("truetype"),
+    url("/fonts/FFXIV_Lodestone_SSF.svg#FFXIV_Lodestone_SSF") format("svg");
   font-weight: 400;
   font-style: normal;
   unicode-range: u+e020-e0ff;
