@@ -17,7 +17,8 @@
     "build": "pnpm -r run build",
     "dev": "pnpm -r --parallel run dev",
     "preinstall": "npx only-allow pnpm",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "test": "vitest run --coverage"
   },
   "lint-staged": {
     "*": "biome check --write",
@@ -30,11 +31,15 @@
     "@biomejs/biome": "2.1.2",
     "@tsconfig/node24": "^24.0.1",
     "@types/node": "^24.1.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
+    "msw": "^2.10.4",
     "sort-package-json": "^3.4.0",
     "tsc-watch": "^7.1.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.14.0-0+sha512.2cd47a0cbf5f1d1de7693a88307a0ede5be94e0d3b34853d800ee775efbea0650cb562b77605ec80bc8d925f5cd27c4dfe8bb04d3a0b76090784c664450d32d6",
   "engines": {
